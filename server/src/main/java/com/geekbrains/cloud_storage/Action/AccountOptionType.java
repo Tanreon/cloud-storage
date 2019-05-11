@@ -4,8 +4,8 @@ import com.geekbrains.cloud_storage.Contract.OptionType;
 
 public enum AccountOptionType implements OptionType {
     UNKNOWN((byte) -1),
-    AUTH((byte)1),
-    CREATE((byte)2),
+    SIGN_IN((byte)1),
+    SIGN_UP((byte)2),
     CHANGE_PASS((byte)3),
     CHANGE_LOGIN((byte)4),
     DELETE_ACCOUNT((byte)5);
