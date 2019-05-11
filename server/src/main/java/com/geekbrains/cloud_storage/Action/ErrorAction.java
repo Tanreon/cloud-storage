@@ -8,7 +8,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ErrorRequest {
+public class ErrorAction {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     private ChannelHandlerContext ctx;
@@ -17,7 +17,7 @@ public class ErrorRequest {
     private int status;
     private String message;
 
-    public ErrorRequest(ChannelHandlerContext ctx, ActionType actionType, OptionType optionType, int status) {
+    public ErrorAction(ChannelHandlerContext ctx, ActionType actionType, OptionType optionType, int status) {
         this.ctx = ctx;
         this.actionType = actionType;
         this.optionType = optionType;
@@ -29,7 +29,7 @@ public class ErrorRequest {
         this.run();
     }
 
-    public ErrorRequest(ChannelHandlerContext ctx, ActionType actionType, OptionType optionType, int status, String message) {
+    public ErrorAction(ChannelHandlerContext ctx, ActionType actionType, OptionType optionType, int status, String message) {
         this.ctx = ctx;
         this.actionType = actionType;
         this.optionType = optionType;
