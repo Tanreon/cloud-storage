@@ -3,6 +3,7 @@ package com.geekbrains.cloud_storage;
 import com.geekbrains.cloud_storage.Contract.RunnableGUI;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
@@ -58,6 +59,7 @@ public class GUI {
         this.mainStage = primaryStage;
         this.mainStage.setTitle(GUI.WINDOW_TITLE);
         this.mainStage.setScene(new Scene(fxmlLoader.load()));
+        this.mainStage.setUserData(fxmlLoader.getController());
     }
 
     public void initSignInScene() throws IOException {

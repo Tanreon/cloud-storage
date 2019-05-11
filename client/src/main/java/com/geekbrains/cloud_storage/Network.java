@@ -220,18 +220,17 @@ public class Network {
 //                        new ErrorAction(ctx, actionType, uploadOptionType, 404, "UNKNOWN_REQUEST");
 //                }
 //                break;
-//            case COMMAND:
-//                CommandOptionType commandOptionType = CommandOptionType.fromByte(optionTypeByte);
-//                LOGGER.log(Level.INFO, "{0} -> Option: {1}", new Object[] { ctx.channel().id(), commandOptionType} );
-//
-//                switch (commandOptionType) {
-//                    case FILE_LIST:
-//                        new CommandFileListAction(ctx, byteBuf);
-//                        break;
+            case COMMAND:
+                CommandOptionType commandOptionType = CommandOptionType.fromByte(optionTypeByte);
+
+                switch (commandOptionType) {
+                    case FILE_LIST:
+                        new CommandFileListResponse(this.socketChannel);
+                        break;
 //                    default:
 //                        new ErrorAction(ctx, actionType, commandOptionType, 404, "UNKNOWN_REQUEST");
-//                }
-//                break;
+                }
+                break;
 //            default:
 //                new ErrorAction(ctx, actionType, ErrorOptionType.UNKNOWN, 404, "UNKNOWN_REQUEST");
 //                LOGGER.log(Level.WARNING, "{0} -> Err request", ctx.channel().id());
