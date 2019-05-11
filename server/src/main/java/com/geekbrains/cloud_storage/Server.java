@@ -1,6 +1,7 @@
 package com.geekbrains.cloud_storage;
 
 import com.geekbrains.cloud_storage.Handler.InServerHandler;
+import com.geekbrains.cloud_storage.Handler.OutServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -9,6 +10,8 @@ import java.util.logging.Logger;
 
 public class Server {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
+
+    private static SQLHandler sqlHandler;
 
     private int port;
 
@@ -25,17 +28,21 @@ public class Server {
     }
 
     public void run() throws Exception {
+        sqlHandler = new SQLHandler();
+
         EventLoopGroup bossGroup   = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
+            sqlHandler.connect();
+
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup);
             bootstrap.channel(NioServerSocketChannel.class);
             bootstrap.childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel channel) throws Exception {
-                    channel.pipeline().addLast(/*new OutServerHandler(), */new InServerHandler());
+                channel.pipeline().addLast(new OutServerHandler(), new InServerHandler());
                 }
             });
             bootstrap.option(ChannelOption.SO_BACKLOG, 128);
@@ -51,6 +58,12 @@ public class Server {
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
+
+            sqlHandler.disconnect();
         }
+    }
+
+    public static SQLHandler getSqlHandler() {
+        return sqlHandler;
     }
 }
