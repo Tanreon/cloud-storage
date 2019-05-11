@@ -1,5 +1,6 @@
 package com.geekbrains.cloud_storage;
 
+import com.geekbrains.cloud_storage.Action.CommandFileListRequest;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.event.ActionEvent;
@@ -53,9 +54,11 @@ public class MainController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         this.initTableView();
 
-        this.updateConnectionStatusLabel();
-        this.updateClientStorageTableView();
-        this.updateServerStorageTableView();
+        Client.getGui().getMainStage().setOnShown(event -> {
+            this.updateConnectionStatusLabel();
+            this.updateClientStorageTableView();
+            this.updateServerStorageTableView();
+        });
     }
 
     private void initTableView() {
@@ -116,7 +119,11 @@ public class MainController implements Initializable {
     }
 
     private void updateServerStorageTableView() {
-        //
+        if (! Client.getNetwork().isSocketWritable() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        new Thread(CommandFileListRequest::new).start();
     }
 
     private void updateClientStorageTableView() {
@@ -141,8 +148,8 @@ public class MainController implements Initializable {
     private void updateConnectionStatusLabel() {
         new Thread(() -> {
             while (true) {
-                Platform.runLater(() -> {
-                    if (Client.getNetwork().getSocketChannel().isConnected()) {
+                Client.getGui().runInThread(gui -> {
+                    if (Client.getNetwork().isSocketWritable()) { // TODO переделать определение состояния сокета
                         this.connectionStatusLabel.setText("подключен");
                     } else {
                         this.connectionStatusLabel.setText("не подключен");
@@ -156,11 +163,5 @@ public class MainController implements Initializable {
                 }
             }
         }).start();
-    }
-
-    public void sendAuth(ActionEvent actionEvent) throws IOException {
-        Client.getNetwork().getSocketChannel().write(ByteBuffer.wrap(new byte[]{(byte) 90, (byte) 1}));
-        Client.getNetwork().getSocketChannel().write(ByteBuffer.wrap(new byte[]{(byte) 0, (byte) -1, (byte) 0, (byte) -1})); // send end
-        LOGGER.log(Level.INFO, "sending: new byte[] { (byte) 90, (byte) 1 }");
     }
 }

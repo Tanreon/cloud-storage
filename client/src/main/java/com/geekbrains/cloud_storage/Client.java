@@ -12,16 +12,14 @@ public class Client extends Application {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 
     private static Network network;
-    private static GUI gui;
-    private static Auth auth;
+    private static GUI gui = new GUI();
+    private static Auth auth = new Auth();
 
     private String host = "localhost";
     private int port = 8189;
 
     public static void main(String[] args) throws Exception {
         launch(args);
-
-        // TODO daemon close after fin main thread
     }
 
     public static Network getNetwork() {
@@ -47,8 +45,14 @@ public class Client extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        gui = new GUI(primaryStage);
-        auth = new Auth();
+        gui.initMainWindow(primaryStage);
+
+        if (auth.isSignedIn()) {
+            gui.getMainStage().show();
+        } else {
+            gui.initSignInScene();
+            gui.getSignInStage().show();
+        }
     }
 
     /*

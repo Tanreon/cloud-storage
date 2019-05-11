@@ -17,39 +17,7 @@ public class GUI {
     private Stage signInStage;
     private Stage signUpStage;
 
-    public Stage getMainStage() {
-        return mainStage;
-    }
-
-    public Stage getSignInStage() {
-        return signInStage;
-    }
-
-    public Stage getSignUpStage() {
-        return signUpStage;
-    }
-
-    public void setMainStage(Stage mainStage) {
-        this.mainStage = mainStage;
-    }
-
-    public void setSignInStage(Stage signInStage) {
-        this.signInStage = signInStage;
-    }
-
-    public void setSignUpStage(Stage signUpStage) {
-        this.signUpStage = signUpStage;
-    }
-
-    public GUI(Stage primaryStage) throws IOException { // TODO пересмотреть, какой то говнокод
-        {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
-            primaryStage.setTitle(GUI.WINDOW_TITLE);
-            primaryStage.setScene(new Scene(fxmlLoader.load()));
-
-            this.mainStage = primaryStage;
-        }
-
+    public GUI() { // TODO пересмотреть, какой то говнокод
 ////        primaryStage.setOnCloseRequest(event -> {
 ////            if (network.getSocketChannel().isConnected()) {
 ////                try {
@@ -62,19 +30,79 @@ public class GUI {
 ////            Platform.exit();
 ////            System.exit(0);
 ////        });
+
+//        {
+//            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
 //
-////        if (! Client.auth.isSignedIn()) {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/signIn.fxml"));
+//            this.mainStage.setTitle(GUI.WINDOW_TITLE);
+//            this.mainStage.setScene(new Scene(fxmlLoader.load()));
+//        }
+//
+//        if (Client.getAuth().isSignedIn()) {
+//            this.mainStage.show();
+//        } else {
+//            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/signIn.fxml"));
+//
+//            Stage stage = new Stage();
+//            stage.setTitle(String.format("%s: %s", GUI.WINDOW_TITLE, SignInController.SCENE_TITLE));
+//            stage.setScene(new Scene(fxmlLoader.load()));
+//            stage.show();
+//
+//            this.signInStage = stage;
+//        }
+    }
 
-            Stage stage = new Stage();
-            stage.setTitle(String.format("%s: %s", GUI.WINDOW_TITLE, SignInController.SCENE_TITLE));
-            stage.setScene(new Scene(fxmlLoader.load()));
-            stage.show();
+    public void initMainWindow(Stage primaryStage) throws IOException {
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
 
-            this.signInStage = stage;
-////        } else {
-////            Client.mainStage.show();
-////        }
+        this.mainStage = primaryStage;
+        this.mainStage.setTitle(GUI.WINDOW_TITLE);
+        this.mainStage.setScene(new Scene(fxmlLoader.load()));
+    }
+
+    public void initSignInScene() throws IOException {
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/signIn.fxml"));
+
+        Stage stage = new Stage();
+        stage.setTitle(String.format("%s: %s", GUI.WINDOW_TITLE, SignInController.SCENE_TITLE));
+        stage.setScene(new Scene(fxmlLoader.load()));
+
+        this.signInStage = stage;
+    }
+
+    public void initSignUpScene() throws IOException {
+        FXMLLoader fxmlLoader = new FXMLLoader();
+        fxmlLoader.setLocation(getClass().getResource("/signUp.fxml"));
+
+        Stage stage = new Stage();
+        stage.setTitle(String.format("%s: %s", GUI.WINDOW_TITLE, SignUpController.SCENE_TITLE));
+        stage.setScene(new Scene(fxmlLoader.load()));
+
+        this.signUpStage = stage;
+    }
+
+    public Stage getMainStage() {
+        return mainStage;
+    }
+
+    public void setMainStage(Stage mainStage) {
+        this.mainStage = mainStage;
+    }
+
+    public Stage getSignInStage() {
+        return signInStage;
+    }
+
+    public void setSignInStage(Stage signInStage) {
+        this.signInStage = signInStage;
+    }
+
+    public Stage getSignUpStage() {
+        return signUpStage;
+    }
+
+    public void setSignUpStage(Stage signUpStage) {
+        this.signUpStage = signUpStage;
     }
 
     public void showAlert(Alert.AlertType alertType, String title, String header, String content) {

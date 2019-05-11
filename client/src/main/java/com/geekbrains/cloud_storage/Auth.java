@@ -21,6 +21,6 @@ public class Auth {
     }
 
     public boolean isSignedIn() {
-        return this.key == null;
+        return this.key != null;
     }
 }

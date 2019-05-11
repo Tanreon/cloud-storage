@@ -4,8 +4,6 @@ import com.geekbrains.cloud_storage.Action.AccountSignInRequest;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -29,7 +27,8 @@ public class SignInController {
         Stage stage = (Stage) this.signUpLink.getScene().getWindow();
         stage.hide();
 
-        this.showSignUpScene();
+        Client.getGui().initSignUpScene();
+        Client.getGui().getSignUpStage().show();
     }
 
     public void handleSignInButtonOnAction(ActionEvent actionEvent) throws IOException {
@@ -57,15 +56,15 @@ public class SignInController {
 //        }
     }
 
-    private void showSignUpScene() throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader();
-        fxmlLoader.setLocation(getClass().getResource("/signUp.fxml"));
-
-        Stage stage = new Stage();
-        stage.setTitle(String.format("%s: %s", GUI.WINDOW_TITLE, SignUpController.SCENE_TITLE));
-        stage.setScene(new Scene(fxmlLoader.load()));
-        stage.show();
-
-        Client.getGui().setSignUpStage(stage);
-    }
+//    private void showSignUpScene() throws IOException {
+//        FXMLLoader fxmlLoader = new FXMLLoader();
+//        fxmlLoader.setLocation(getClass().getResource("/signUp.fxml"));
+//
+//        Stage stage = new Stage();
+//        stage.setTitle(String.format("%s: %s", GUI.WINDOW_TITLE, SignUpController.SCENE_TITLE));
+//        stage.setScene(new Scene(fxmlLoader.load()));
+//        stage.show();
+//
+//        Client.getGui().setSignUpStage(stage);
+//    }
 }

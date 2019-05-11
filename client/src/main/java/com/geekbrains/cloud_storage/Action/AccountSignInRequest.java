@@ -46,9 +46,12 @@ public class AccountSignInRequest {
                 outputStream.writeShort((short) this.password.length());
                 outputStream.write(this.password.getBytes());
 
-                outputStream.write(Client.getNetwork().getEndBytes());
-
                 LOGGER.log(Level.INFO, "Data write: {0}", ACTION_TYPE);
+            }
+
+            {
+                outputStream.write(Client.getNetwork().getEndBytes());
+                LOGGER.log(Level.INFO, "End write: {0}", ACTION_TYPE);
             }
 
             Client.getNetwork().writeAndFlush(byteOutputStream);
