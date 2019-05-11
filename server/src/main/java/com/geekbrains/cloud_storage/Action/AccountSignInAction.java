@@ -139,7 +139,7 @@ public class AccountSignInAction extends AbstractAction {
         DataOutputStream outputStream = new DataOutputStream(byteOutputStream);
 
         {
-            outputStream.write(this.resp(new Response(ACTION_TYPE, OPTION_TYPE, 200, "OK", false))); // TODO возможно нет ничего плохого в том что делается два write. Дублирование кода
+            outputStream.write(this.resp(new Response(ACTION_TYPE, OPTION_TYPE, 200, "OK", false))); // FIXME возможно нет ничего плохого в том что делается два write на сокете. Дублирование кода
         }
 
         {
@@ -149,6 +149,9 @@ public class AccountSignInAction extends AbstractAction {
 
             outputStream.writeInt(keyBytesLength);
             outputStream.write(keyBytes);
+        }
+
+        {
             outputStream.write(new byte[] { (byte) 0, (byte) -1 });
         }
 
