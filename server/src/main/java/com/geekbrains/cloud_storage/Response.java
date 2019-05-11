@@ -7,11 +7,20 @@ public class Response {
     private OptionType optionType;
     private int status;
     private String message;
+    private boolean last;
 
     public Response(ActionType actionType, OptionType optionType, int status) {
         this.actionType = actionType;
         this.optionType = optionType;
         this.status = status;
+        this.last = true;
+    }
+
+    public Response(ActionType actionType, OptionType optionType, int status, boolean last) {
+        this.actionType = actionType;
+        this.optionType = optionType;
+        this.status = status;
+        this.last = last;
     }
 
     public Response(ActionType actionType, OptionType optionType, int status, String message) {
@@ -19,6 +28,19 @@ public class Response {
         this.optionType = optionType;
         this.status = status;
         this.message = message;
+        this.last = true;
+    }
+
+    public Response(ActionType actionType, OptionType optionType, int status, String message, boolean last) {
+        this.actionType = actionType;
+        this.optionType = optionType;
+        this.status = status;
+        this.message = message;
+        this.last = last;
+    }
+
+    public boolean last() {
+        return this.last;
     }
 
     public void setMessage(String message) {
