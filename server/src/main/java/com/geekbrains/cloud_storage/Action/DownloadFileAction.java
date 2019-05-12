@@ -74,16 +74,16 @@ public class DownloadFileAction extends AbstractAction {
             return false;
         }
 
-        ByteBuf dataEndBytes = Unpooled.buffer(2);
-        this.message.readBytes(dataEndBytes);
-
-        if (dataEndBytes.readByte() == (byte)0 && dataEndBytes.readByte() == (byte)-1) {  // TODO перенести в общий класс
-            LOGGER.log(Level.INFO, "data end correct");
-        } else {
-            LOGGER.log(Level.INFO, "data end NOT correct");
-
-            return false;
-        }
+//        ByteBuf dataEndBytes = Unpooled.buffer(2);
+//        this.message.readBytes(dataEndBytes);
+//
+//        if (dataEndBytes.readByte() == (byte)0 && dataEndBytes.readByte() == (byte)-1) {  // TODO перенести в общий класс
+//            LOGGER.log(Level.INFO, "data end correct");
+//        } else {
+//            LOGGER.log(Level.INFO, "data end NOT correct");
+//
+//            return false;
+//        }
 
         return true;
     }
@@ -105,7 +105,7 @@ public class DownloadFileAction extends AbstractAction {
     }
 
     @Override
-    protected boolean sendDataByProtocol() throws IOException, InterruptedException {
+    protected boolean sendDataByProtocol() throws IOException {
         LOGGER.log(Level.INFO, "{0} -> Client success start download file part: {1}", new Object[] { this.ctx.channel().id(), this.fileName });
 
         long filePartsCount = (long) Math.ceil((double) this.randomAccessFile.length() / 4096);
@@ -136,7 +136,7 @@ public class DownloadFileAction extends AbstractAction {
                 long availableBytes = (filePart * 4096) < this.randomAccessFile.length() ? 4096 : 4096 - ((filePart * 4096) - this.randomAccessFile.length());
 
                 byte[] fileBytes = new byte[(int) availableBytes];
-                int bytesRead = this.randomAccessFile.read(fileBytes, 0, (int) availableBytes);
+                int bytesRead = this.randomAccessFile.read(fileBytes);
                 outputStream.writeInt(bytesRead); // {5}
                 outputStream.write(fileBytes); // {6}
             }

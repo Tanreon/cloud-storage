@@ -91,16 +91,16 @@ public class AccountSignUpAction extends AbstractAction {
             return false;
         }
 
-        ByteBuf dataEndBytes = Unpooled.buffer(2);
-        this.message.readBytes(dataEndBytes);
-
-        if (dataEndBytes.readByte() == (byte)0 && dataEndBytes.readByte() == (byte)-1) {
-            LOGGER.log(Level.INFO, "data end correct");
-        } else {
-            LOGGER.log(Level.INFO, "data end NOT correct");
-
-            return false;
-        }
+//        ByteBuf dataEndBytes = Unpooled.buffer(2);
+//        this.message.readBytes(dataEndBytes);
+//
+//        if (dataEndBytes.readByte() == (byte)0 && dataEndBytes.readByte() == (byte)-1) {
+//            LOGGER.log(Level.INFO, "data end correct");
+//        } else {
+//            LOGGER.log(Level.INFO, "data end NOT correct");
+//
+//            return false;
+//        }
 
         return true;
     }
