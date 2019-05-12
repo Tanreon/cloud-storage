@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
 
-<VBox xmlns:fx="http://javafx.com/fxml/1" alignment="center" prefHeight="549.0" prefWidth="930.0" xmlns="http://javafx.com/javafx/8.0.171" fx:controller="com.geekbrains.cloud_storage.Controller.MainController">
+<VBox xmlns:fx="http://javafx.com/fxml/1" alignment="center" prefHeight="549.0" prefWidth="930.0" xmlns="http://javafx.com/javafx/8.0.171" fx:controller="com.geekbrains.cs.client.Controller.MainController">
     <GridPane VBox.vgrow="ALWAYS">
         <columnConstraints>
             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
