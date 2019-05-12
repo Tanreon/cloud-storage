@@ -1,15 +1,14 @@
 package com.geekbrains.cloud_storage;
 
+import com.geekbrains.cloud_storage.Handler.InClientHandler;
+import com.geekbrains.cloud_storage.Handler.OutClientHandler;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
-import io.netty.handler.codec.Delimiters;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -19,26 +18,18 @@ import java.util.logging.Logger;
 public class Client extends Application {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 
-    //    private static Network network;
-    private static Channel network;
+    private static Channel networkChannel;
     private static GUI gui = new GUI();
     private static Auth auth = new Auth();
 
     private String host = "localhost";
     private int port = 8189;
 
-    public static void main(String[] args) throws Exception {
-        launch(args);
+    public static Channel getNetworkChannel() {
+        return networkChannel;
     }
 
-    //    public static Network getNetwork() {
-//        return network;
-//    }
-    public static Channel getNetwork() {
-        return network;
-    }
-
-    public static byte[] getEndBytes() {
+    public static byte[] getEndBytes() { // FIXME убрать отсюда. тут этому не место
         return new byte[] { (byte) 0, (byte) -1 };
     }
 
@@ -50,8 +41,12 @@ public class Client extends Application {
         return auth;
     }
 
+    public static void main(String[] args) {
+        launch(args);
+    }
+
     @Override
-    public void init() throws InterruptedException {
+    public void init() {
         // init logger
         Common.initLogger(LOGGER);
 
@@ -97,13 +92,15 @@ public class Client extends Application {
                     // Start the client.
                     ChannelFuture channelFuture = bootstrap.connect(this.host, this.port).sync(); // (5)
 
-                    network = channelFuture.channel();
+                    Client.networkChannel = channelFuture.channel();
 
                     // Wait until the connection is closed.
                     channelFuture.channel().closeFuture().sync();
                 } catch (InterruptedException e) {
-                    LOGGER.log(Level.WARNING, "Disconnected. Re-Connecting...");
                     e.printStackTrace();
+                    break;
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "Disconnected. Re-Connecting...");
                 } finally {
                     workerGroup.shutdownGracefully();
                 }
@@ -115,27 +112,5 @@ public class Client extends Application {
                 }
             }
         }).start();
-
-//        new Thread(() -> {
-//            while (true) {
-//                try {
-//                    Client.network = new Network(this.host, this.port);
-//                    Client.network.run();
-//                } catch (ConnectException ignored) {
-//                    LOGGER.log(Level.WARNING, "Disconnected. Re-Connecting...");
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                    break;
-//                }
-//
-//                try {
-//                    Thread.sleep(1000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }).start();
     }
 }

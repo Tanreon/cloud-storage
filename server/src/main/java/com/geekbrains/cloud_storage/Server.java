@@ -3,9 +3,12 @@ package com.geekbrains.cloud_storage;
 import com.geekbrains.cloud_storage.Handler.InServerHandler;
 import com.geekbrains.cloud_storage.Handler.OutServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+
 import java.util.logging.Logger;
 
 public class Server {
@@ -40,10 +43,12 @@ public class Server {
             bootstrap.group(bossGroup, workerGroup);
             bootstrap.channel(NioServerSocketChannel.class);
             bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
+//            bootstrap.childOption(ChannelOption.TCP_NODELAY, true); // отключено намерено так как много маленьких пакетиков
             bootstrap.childHandler(new ChannelInitializer<Channel>() {
                 @Override
-                protected void initChannel(Channel channel) throws Exception {
-                channel.pipeline().addLast(new OutServerHandler(), new InServerHandler());
+                protected void initChannel(Channel channel) {
+                    channel.pipeline().addLast(new DelimiterBasedFrameDecoder(8196, Unpooled.wrappedBuffer(new byte[] { (byte) 0, (byte) -1 })));
+                    channel.pipeline().addLast(new OutServerHandler(), new InServerHandler());
                 }
             });
 
