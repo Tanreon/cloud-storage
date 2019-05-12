@@ -1,7 +1,7 @@
-package com.geekbrains.cloud_storage.Handler;
+package com.geekbrains.cs.server.Handler;
 
-import com.geekbrains.cloud_storage.Server;
-import com.geekbrains.cloud_storage.Response;
+import com.geekbrains.cs.server.Server;
+import com.geekbrains.cs.server.Response;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;

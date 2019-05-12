@@ -1,14 +1,10 @@
-package com.geekbrains.cloud_storage.Service;
+package com.geekbrains.cs.server.Service;
 
-import com.geekbrains.cloud_storage.Server;
+import com.geekbrains.cs.server.Server;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Random;
 import java.util.UUID;
 
 public class AccountSignService {

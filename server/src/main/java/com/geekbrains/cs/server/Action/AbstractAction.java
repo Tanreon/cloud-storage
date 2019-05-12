@@ -1,9 +1,9 @@
-package com.geekbrains.cloud_storage.Action;
+package com.geekbrains.cs.server.Action;
 
-import com.geekbrains.cloud_storage.ActionType;
-import com.geekbrains.cloud_storage.Contract.OptionType;
-import com.geekbrains.cloud_storage.Response;
-import com.geekbrains.cloud_storage.Server;
+import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.common.Contract.OptionType;
+import com.geekbrains.cs.server.Response;
+import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -17,7 +17,7 @@ public abstract class AbstractAction {
     protected static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
     protected ChannelHandlerContext ctx;
-    protected ByteBuf message;
+    protected ByteBuf byteBuf;
 
     protected abstract boolean receiveDataByProtocol() throws Exception;
     protected abstract boolean run() throws Exception;
@@ -26,7 +26,6 @@ public abstract class AbstractAction {
     protected void rejectEmpty(ActionType actionType, OptionType optionType) {
         LOGGER.log(Level.WARNING, "{0} -> Protocol receiving err", ctx.channel().id());
         ctx.writeAndFlush(new Response(actionType, optionType, 400, "BAD_REQUEST"));
-        ctx.close();
     }
 
     protected byte[] resp(Response response) throws IOException {

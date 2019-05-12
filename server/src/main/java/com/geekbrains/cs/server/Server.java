@@ -1,7 +1,8 @@
-package com.geekbrains.cloud_storage;
+package com.geekbrains.cs.server;
 
-import com.geekbrains.cloud_storage.Handler.InServerHandler;
-import com.geekbrains.cloud_storage.Handler.OutServerHandler;
+import com.geekbrains.cs.common.Common;
+import com.geekbrains.cs.server.Handler.InServerHandler;
+import com.geekbrains.cs.server.Handler.OutServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;

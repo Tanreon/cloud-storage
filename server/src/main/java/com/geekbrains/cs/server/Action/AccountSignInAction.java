@@ -1,10 +1,11 @@
-package com.geekbrains.cloud_storage.Action;
+package com.geekbrains.cs.server.Action;
 
-import com.geekbrains.cloud_storage.Contract.OptionType;
-import com.geekbrains.cloud_storage.Server;
-import com.geekbrains.cloud_storage.Service.AccountSignService;
-import com.geekbrains.cloud_storage.ActionType;
-import com.geekbrains.cloud_storage.Response;
+import com.geekbrains.cs.common.Contract.OptionType;
+import com.geekbrains.cs.common.OptionType.AccountOptionType;
+import com.geekbrains.cs.server.Server;
+import com.geekbrains.cs.server.Service.AccountSignService;
+import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.server.Response;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -12,7 +13,6 @@ import io.netty.channel.ChannelHandlerContext;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,9 +27,9 @@ public class AccountSignInAction extends AbstractAction {
 
     private String key = null;
 
-    public AccountSignInAction(ChannelHandlerContext ctx, ByteBuf message) throws Exception {
+    public AccountSignInAction(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
         this.ctx = ctx;
-        this.message = message;
+        this.byteBuf = byteBuf;
 
         // Run protocol request processing
         if (! this.receiveDataByProtocol()) {
@@ -49,15 +49,15 @@ public class AccountSignInAction extends AbstractAction {
 
     @Override
     protected boolean receiveDataByProtocol() {
-        if (! message.isReadable()) {
+        if (! byteBuf.isReadable()) {
             rejectEmpty(ACTION_TYPE, OPTION_TYPE);
             return false;
         }
 
         try {
-            short loginLength = this.message.readShort();
+            short loginLength = this.byteBuf.readShort();
             byte[] loginBytes = new byte[loginLength];
-            this.message.readBytes(loginBytes);
+            this.byteBuf.readBytes(loginBytes);
             this.login = new String(loginBytes);
 
             LOGGER.log(Level.INFO, "{0} -> Login receiving success: {1}", new Object[] { this.ctx.channel().id(), this.login });
@@ -69,9 +69,9 @@ public class AccountSignInAction extends AbstractAction {
         }
 
         try {
-            short passwordLength = this.message.readShort();
+            short passwordLength = this.byteBuf.readShort();
             byte[] passwordBytes = new byte[passwordLength];
-            this.message.readBytes(passwordBytes);
+            this.byteBuf.readBytes(passwordBytes);
             this.password = new String(passwordBytes);
 
             LOGGER.log(Level.INFO, "{0} -> Password receiving success", this.ctx.channel().id());
@@ -82,16 +82,13 @@ public class AccountSignInAction extends AbstractAction {
             return false;
         }
 
-//        ByteBuf dataEndBytes = Unpooled.buffer(2);
-//        this.message.readBytes(dataEndBytes);
-//
-//        if (dataEndBytes.readByte() == (byte)0 && dataEndBytes.readByte() == (byte)-1) {  // TODO перенести в общий класс
-//            LOGGER.log(Level.INFO, "data end correct");
-//        } else {
-//            LOGGER.log(Level.INFO, "data end NOT correct");
-//
-//            return false;
-//        }
+        if (this.byteBuf.isReadable()) { // check end
+            LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
+
+            return false;
+        } else {
+            LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
+        }
 
         return true;
     }

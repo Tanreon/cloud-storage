@@ -1,6 +1,7 @@
-package com.geekbrains.cloud_storage;
+package com.geekbrains.cs.server;
 
-import com.geekbrains.cloud_storage.Contract.OptionType;
+import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.common.Contract.OptionType;
 
 public class Response {
     private ActionType actionType;

@@ -1,9 +1,9 @@
-package com.geekbrains.cloud_storage.Action;
+package com.geekbrains.cs.server.Action;
 
-import com.geekbrains.cloud_storage.Contract.OptionType;
-import com.geekbrains.cloud_storage.Server;
-import com.geekbrains.cloud_storage.ActionType;
-import com.geekbrains.cloud_storage.Response;
+import com.geekbrains.cs.common.Contract.OptionType;
+import com.geekbrains.cs.server.Server;
+import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.server.Response;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.logging.Level;
 import java.util.logging.Logger;

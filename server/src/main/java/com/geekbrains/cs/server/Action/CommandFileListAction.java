@@ -1,9 +1,10 @@
-package com.geekbrains.cloud_storage.Action;
+package com.geekbrains.cs.server.Action;
 
-import com.geekbrains.cloud_storage.ActionType;
-import com.geekbrains.cloud_storage.Contract.OptionType;
-import com.geekbrains.cloud_storage.Response;
-import com.geekbrains.cloud_storage.Server;
+import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.common.Contract.OptionType;
+import com.geekbrains.cs.common.OptionType.CommandOptionType;
+import com.geekbrains.cs.server.Response;
+import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -36,7 +37,7 @@ public class CommandFileListAction extends AbstractAction {
 
     public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf message) throws Exception {
         this.ctx = ctx;
-        this.message = message;
+        this.byteBuf = message;
 
         // Run protocol request processing
         if (!this.receiveDataByProtocol()) {
@@ -60,6 +61,14 @@ public class CommandFileListAction extends AbstractAction {
      * */
     @Override
     protected boolean receiveDataByProtocol() {
+        if (this.byteBuf.isReadable()) { // check end
+            LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
+
+            return false;
+        } else {
+            LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
+        }
+
         return true;
     }
 

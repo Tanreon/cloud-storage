@@ -1,4 +1,4 @@
-package com.geekbrains.cloud_storage;
+package com.geekbrains.cs.server;
 
 import java.sql.*;
 
