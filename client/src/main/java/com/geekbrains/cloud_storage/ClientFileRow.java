@@ -1,6 +1,6 @@
 package com.geekbrains.cloud_storage;
 
-import com.geekbrains.cloud_storage.Contract.AbstractFileListCellView;
+import com.geekbrains.cloud_storage.Contract.AbstractFileRow;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -8,8 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 
-public class ClientFileListCellView extends AbstractFileListCellView {
-    public ClientFileListCellView(Path path) {
+public class ClientFileRow extends AbstractFileRow {
+    public ClientFileRow(Path path) {
         this.name = path.toFile().getName();
         this.size = path.toFile().length();
 

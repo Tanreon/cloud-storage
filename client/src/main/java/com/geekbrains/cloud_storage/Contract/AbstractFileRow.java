@@ -5,7 +5,7 @@ import java.time.Instant;
 /*
 * FIXME не нравится название и то что от него зависит
 * */
-public abstract class AbstractFileListCellView {
+public abstract class AbstractFileRow {
     protected String name;
     protected long size;
     protected Instant modifiedAt;

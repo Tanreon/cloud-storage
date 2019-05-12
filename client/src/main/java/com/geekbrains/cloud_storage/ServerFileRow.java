@@ -1,10 +1,10 @@
 package com.geekbrains.cloud_storage;
 
-import com.geekbrains.cloud_storage.Contract.AbstractFileListCellView;
+import com.geekbrains.cloud_storage.Contract.AbstractFileRow;
 
 import java.time.Instant;
 
-public class ServerFileListCellView extends AbstractFileListCellView {
+public class ServerFileRow extends AbstractFileRow {
     public void setName(String name) {
         this.name = name;
     }

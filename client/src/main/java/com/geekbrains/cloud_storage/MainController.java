@@ -2,16 +2,13 @@ package com.geekbrains.cloud_storage;
 
 import com.geekbrains.cloud_storage.Action.CommandFileListRequest;
 import com.geekbrains.cloud_storage.Action.DownloadFileRequest;
-import com.geekbrains.cloud_storage.Contract.AbstractFileListCellView;
+import com.geekbrains.cloud_storage.Contract.AbstractFileRow;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.input.ContextMenuEvent;
 import javafx.util.Callback;
 
 import java.io.IOException;
@@ -30,25 +27,25 @@ public class MainController implements Initializable {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 
     @FXML
-    public TableView<AbstractFileListCellView> clientStorageTableView;
+    public TableView<AbstractFileRow> clientStorageTableView;
     @FXML
-    public TableColumn<AbstractFileListCellView, String> clientStorageFileNameColumn;
+    public TableColumn<AbstractFileRow, String> clientStorageFileNameColumn;
     @FXML
-    public TableColumn<AbstractFileListCellView, String> clientStorageFileCreatedAtColumn;
+    public TableColumn<AbstractFileRow, String> clientStorageFileCreatedAtColumn;
     @FXML
-    public TableColumn<AbstractFileListCellView, String> clientStorageFileSizeColumn;
+    public TableColumn<AbstractFileRow, String> clientStorageFileSizeColumn;
     @FXML
-    public TableView<AbstractFileListCellView> serverStorageTableView;
+    public TableView<AbstractFileRow> serverStorageTableView;
     @FXML
-    public TableColumn<AbstractFileListCellView, String> serverStorageFileNameColumn;
+    public TableColumn<AbstractFileRow, String> serverStorageFileNameColumn;
     @FXML
-    public TableColumn<AbstractFileListCellView, String> serverStorageFileCreatedAtColumn;
+    public TableColumn<AbstractFileRow, String> serverStorageFileCreatedAtColumn;
     @FXML
-    public TableColumn<AbstractFileListCellView, String> serverStorageFileSizeColumn;
+    public TableColumn<AbstractFileRow, String> serverStorageFileSizeColumn;
     @FXML
     public Label connectionStatusLabel;
 
-    public TableView<AbstractFileListCellView> getServerStorageTableView() {
+    public TableView<AbstractFileRow> getServerStorageTableView() {
         return this.serverStorageTableView;
     }
 
@@ -65,14 +62,14 @@ public class MainController implements Initializable {
 
     private void initTableView() {
         {
-            Callback<TableColumn.CellDataFeatures<AbstractFileListCellView, String>, ObservableValue<String>> callback = param -> new SimpleStringProperty(param.getValue().getName());
+            Callback<TableColumn.CellDataFeatures<AbstractFileRow, String>, ObservableValue<String>> callback = param -> new SimpleStringProperty(param.getValue().getName());
 
             this.clientStorageFileNameColumn.setCellValueFactory(callback);
             this.serverStorageFileNameColumn.setCellValueFactory(callback);
         }
 
         {
-            Callback<TableColumn.CellDataFeatures<AbstractFileListCellView, String>, ObservableValue<String>> callback = param -> {
+            Callback<TableColumn.CellDataFeatures<AbstractFileRow, String>, ObservableValue<String>> callback = param -> {
                 SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); // FIXME вынести в отдельную константу
 
                 return new SimpleStringProperty(simpleDateFormat.format(param.getValue().getCreatedAt().toEpochMilli()));
@@ -83,12 +80,12 @@ public class MainController implements Initializable {
         }
 
         {
-            Callback<TableColumn.CellDataFeatures<AbstractFileListCellView, String>, ObservableValue<String>> callback = param -> {
+            Callback<TableColumn.CellDataFeatures<AbstractFileRow, String>, ObservableValue<String>> callback = param -> {
                 String format = "%.2f %s";
                 double size = 0;
                 String unit = "B";
 
-                for (AbstractFileListCellView.SizeUnit sizeUnit : AbstractFileListCellView.SizeUnit.values()) {
+                for (AbstractFileRow.SizeUnit sizeUnit : AbstractFileRow.SizeUnit.values()) {
                     size = param.getValue().getSize(sizeUnit);
 
                     switch (sizeUnit) {
@@ -136,13 +133,13 @@ public class MainController implements Initializable {
 
         {
             this.serverStorageTableView.setRowFactory(tableView -> {
-                final TableRow<AbstractFileListCellView> tableRow = new TableRow<>();
+                final TableRow<AbstractFileRow> tableRow = new TableRow<>();
                 final ContextMenu contextMenu = new ContextMenu();
 
                 MenuItem downloadMenuItem = new MenuItem("Download");
                 downloadMenuItem.setOnAction(event -> {
                     LOGGER.log(Level.INFO, "DOWNLOAD File command {0}", tableRow.getItem().getName());
-                    if (! Client.getNetwork().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+                    if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
                         return;
                     }
 
@@ -167,7 +164,7 @@ public class MainController implements Initializable {
     }
 
     private void updateServerStorageTableView() {
-        if (! Client.getNetwork().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
         }
 
@@ -190,14 +187,14 @@ public class MainController implements Initializable {
             return;
         }
 
-        files.forEach(path -> this.clientStorageTableView.getItems().add(new ClientFileListCellView(path)));
+        files.forEach(path -> this.clientStorageTableView.getItems().add(new ClientFileRow(path)));
     }
 
     private void updateConnectionStatusLabel() {
         new Thread(() -> {
             while (true) {
                 Client.getGui().runInThread(gui -> {
-                    if (Client.getNetwork().isOpen()) { // TODO переделать определение состояния сокета
+                    if (Client.getNetworkChannel().isOpen()) { // TODO переделать определение состояния сокета
                         this.connectionStatusLabel.setText("подключен");
                     } else {
                         this.connectionStatusLabel.setText("не подключен");
