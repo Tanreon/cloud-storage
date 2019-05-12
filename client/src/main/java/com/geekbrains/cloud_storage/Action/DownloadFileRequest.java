@@ -50,7 +50,7 @@ public class DownloadFileRequest {
                 LOGGER.log(Level.INFO, "End write: {0}", ACTION_TYPE);
             }
 
-            Client.getNetwork().writeAndFlush(byteOutputStream);
+            Client.getNetworkChannel().writeAndFlush(byteOutputStream);
         } catch (IOException ex) {
             LOGGER.log(Level.WARNING, "Send exception: {0}", ex.getMessage());
         }

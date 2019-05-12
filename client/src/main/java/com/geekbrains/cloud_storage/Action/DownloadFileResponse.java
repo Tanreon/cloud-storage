@@ -1,13 +1,12 @@
 package com.geekbrains.cloud_storage.Action;
 
-import com.geekbrains.cloud_storage.ActionType;
 import com.geekbrains.cloud_storage.Client;
-import com.geekbrains.cloud_storage.Contract.OptionType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.io.*;
-import java.nio.channels.SocketChannel;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,10 +15,8 @@ public class DownloadFileResponse extends AbstractResponse {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
     private static final String STORAGE_PATH = "client_storage";
 
-    private short status;
-    private String message;
     private String fileName;
-    private long fileSizeByBlocks;
+    private long fileDataBlocksCount;
     private int fileDataPart;
     private byte[] fileDataBytes;
 
@@ -35,60 +32,44 @@ public class DownloadFileResponse extends AbstractResponse {
     }
 
     protected void receiveDataByProtocol() throws Exception {
-        { // readResponse status
-            this.status = this.byteBuf.readShort();
-        }
+        this.readMeta();
 
-        { // readResponse message
-            int messageLength = this.byteBuf.readInt();
-
-            if (messageLength != 0) {
-                byte[] messageBytes = new byte[messageLength];
-                this.byteBuf.readBytes(messageBytes);
-                this.message = new String(messageBytes);
-            }
-        }
-
-        if (this.isResponseEndReached(this.byteBuf)) { // check end
+        if (this.byteBuf.isReadable()) { // check end
+            LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
+        } else {
             LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
 
             return;
-        } else {
-            LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
         }
 
         { // get filename
-            int fileNameLength = this.byteBuf.readInt();
-
-            byte[] fileNameBytes = new byte[fileNameLength];
-            this.byteBuf.readBytes(fileNameBytes);
-            this.fileName = new String(fileNameBytes);
+            this.fileName = this.readString();
         }
 
         { // get full file size in 4096 bytes block
-            this.fileSizeByBlocks = this.byteBuf.readLong();
+            this.fileDataBlocksCount = this.byteBuf.readLong();
         }
 
-        { // get data by part
+        { // get file part
             this.fileDataPart = this.byteBuf.readInt();
+        }
 
-            int fileDataLength = this.byteBuf.readInt();
-            this.fileDataBytes = new byte[fileDataLength];
-            this.byteBuf.readBytes(fileDataBytes);
+        { // get data
+            this.fileDataBytes = this.readBytes();
         }
 
         if (this.byteBuf.isReadable()) { // check end
-            LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
-        } else {
             LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
 
             throw new Exception("End bytes not received");
+        } else {
+            LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
         }
     }
 
     protected void run() throws IOException {
         if (this.status == 200) {
-            LOGGER.log(Level.INFO, "Запись части файла: filename {0}, part {1}", new Object[] { this.fileName, this.fileDataPart });
+            LOGGER.log(Level.INFO, "Запись части файла: filename {0}, part {1}", new Object[]{this.fileName, this.fileDataPart});
             File file = Paths.get(STORAGE_PATH, this.fileName).toFile();
 
             if (this.fileDataPart == 1 && file.exists()) {

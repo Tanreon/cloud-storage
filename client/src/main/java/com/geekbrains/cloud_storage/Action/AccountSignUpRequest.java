@@ -7,7 +7,6 @@ import com.geekbrains.cloud_storage.Contract.OptionType;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,7 +62,7 @@ public class AccountSignUpRequest {
                 LOGGER.log(Level.INFO, "End write: {0}", ACTION_TYPE);
             }
 
-            Client.getNetwork().writeAndFlush(byteOutputStream);
+            Client.getNetworkChannel().writeAndFlush(byteOutputStream);
         } catch (IOException ex) {
             LOGGER.log(Level.WARNING, "Send exception: {0}", ex.getMessage());
         }

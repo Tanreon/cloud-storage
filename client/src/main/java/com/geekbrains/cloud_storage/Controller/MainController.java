@@ -1,7 +1,9 @@
-package com.geekbrains.cloud_storage;
+package com.geekbrains.cloud_storage.Controller;
 
 import com.geekbrains.cloud_storage.Action.CommandFileListRequest;
 import com.geekbrains.cloud_storage.Action.DownloadFileRequest;
+import com.geekbrains.cloud_storage.Client;
+import com.geekbrains.cloud_storage.ClientFileRow;
 import com.geekbrains.cloud_storage.Contract.AbstractFileRow;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
@@ -154,7 +156,7 @@ public class MainController implements Initializable {
                 contextMenu.getItems().addAll(downloadMenuItem);
 
                 // Set context menu on row, but use a binding to make it only show for non-empty rows:
-                tableRow.contextMenuProperty().bind(Bindings.when(tableRow.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu));
+                tableRow.contextMenuProperty().bind(Bindings.when(tableRow.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu)); // FIXME все равно вылазит меню на пустом месте при ПКМ
 
                 tableView.setContextMenu(contextMenu);
 

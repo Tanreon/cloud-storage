@@ -1,9 +1,10 @@
 package com.geekbrains.cloud_storage;
 
 import com.geekbrains.cloud_storage.Contract.RunnableGUI;
+import com.geekbrains.cloud_storage.Controller.SignInController;
+import com.geekbrains.cloud_storage.Controller.SignUpController;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;

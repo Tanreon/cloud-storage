@@ -57,7 +57,7 @@ public class AccountSignInRequest {
             }
 
 
-            Client.getNetwork().writeAndFlush(byteOutputStream);
+            Client.getNetworkChannel().writeAndFlush(byteOutputStream);
         } catch (IOException ex) {
             LOGGER.log(Level.WARNING, "Send exception: {0}", ex.getMessage());
         }

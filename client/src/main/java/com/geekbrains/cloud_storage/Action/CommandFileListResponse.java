@@ -1,7 +1,7 @@
 package com.geekbrains.cloud_storage.Action;
 
 import com.geekbrains.cloud_storage.Client;
-import com.geekbrains.cloud_storage.MainController;
+import com.geekbrains.cloud_storage.Controller.MainController;
 import com.geekbrains.cloud_storage.ServerFileRow;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
