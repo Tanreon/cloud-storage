@@ -16,8 +16,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -25,7 +23,7 @@ import java.util.stream.Stream;
 public class CommandFileListAction extends AbstractAction {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-    private final String SERVER_STORAGE_PATH = "server_storage";
+    private final String STORAGE_PATH = "server_storage";
 
     private final ActionType ACTION_TYPE = ActionType.COMMAND;
     private final OptionType OPTION_TYPE = CommandOptionType.FILE_LIST;
@@ -82,7 +80,7 @@ public class CommandFileListAction extends AbstractAction {
 
     @Override
     protected boolean run() {
-        Path storage = Paths.get(SERVER_STORAGE_PATH, this.login);
+        Path storage = Paths.get(STORAGE_PATH, this.login);
 
         try {
             this.fileStream = Files.list(storage);
@@ -149,81 +147,4 @@ public class CommandFileListAction extends AbstractAction {
 
         return true;
     }
-
-    /*protected boolean run_old() {
-        Path storage = Paths.get("storage", this.login);
-
-        Stream<Path> files;
-
-        try {
-            files = Files.list(storage);
-        } catch (NoSuchFileException e) {
-            LOGGER.log(Level.WARNING, "{0} -> Path not found err", ctx.channel().id());
-            ctx.writeAndFlush(new Response(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
-            ctx.close();
-            return;
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "{0} -> IOException when reading client dir", ctx.channel().id());
-            e.printStackTrace();
-            ctx.writeAndFlush(new Response(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
-            ctx.close();
-            return;
-        }
-
-//        ctx.writeAndFlush(generatePacketByProtocol(files.collect(Collectors.toList())));
-        generatePacketByProtocol(files.collect(Collectors.toList()));
-
-//        LOGGER.log(Level.INFO, "{0} -> Client success signed in: {1}", new Object[] { ctx.channel().id(), this.login });
-//        ctx.writeAndFlush(Converter.answer(ActionType.ACCOUNT, 200, AccountOptionType.SIGN_IN, "OK"));
-    }*/
-
-/*//    private void generatePacketByProtocol(List<Path> filesList) {
-    private void generatePacketByProtocol(List<Path> filesListx) {
-        List<String> filesList = new LinkedList<>();
-
-        for (int i = 0; i < 30; i++) {
-            filesList.add(String.format("file_%d.mp4", i));
-        }
-
-        ByteBuf metaBuf = Unpooled.wrappedBuffer(
-            Unpooled.buffer(1).writeByte(ACTION_TYPE.getValue()),
-            Unpooled.buffer(1).writeByte(OPTION_TYPE.getValue()),
-            Unpooled.copyShort(200),
-            Unpooled.wrappedBuffer(new byte[] { (byte)0, (byte)-1, (byte)0, (byte)-1 })
-        );
-
-        ctx.write(metaBuf);
-
-//        filesList.forEach(path -> { // another data
-//            byte[] fileNameBytes = path.getFileName().toString().getBytes();
-//
-//            ByteBuf dataBuf = Unpooled.wrappedBuffer(
-//                Unpooled.copyInt(fileNameBytes.length),
-//                Unpooled.copiedBuffer(fileNameBytes)
-//            );
-//
-//            ctx.write(dataBuf);
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        });
-
-        filesList.forEach(item -> { // another data
-            byte[] fileNameBytes = item.getBytes();
-
-            ByteBuf dataBuf = Unpooled.wrappedBuffer(
-                Unpooled.copyShort(fileNameBytes.length),
-                Unpooled.copiedBuffer(fileNameBytes)
-            );
-
-            System.out.println("write " + item);
-
-            ctx.write(Unpooled.wrappedBuffer(dataBuf));
-        });
-
-        ctx.write(Unpooled.wrappedBuffer(new byte[] { (byte)0, (byte)-1, (byte)0, (byte)-1 }));
-        ctx.flush();
-    }*/
 }

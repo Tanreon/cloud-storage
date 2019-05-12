@@ -39,14 +39,13 @@ public class Server {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup);
             bootstrap.channel(NioServerSocketChannel.class);
+            bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
             bootstrap.childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel channel) throws Exception {
                 channel.pipeline().addLast(new OutServerHandler(), new InServerHandler());
                 }
             });
-            bootstrap.option(ChannelOption.SO_BACKLOG, 128);
-            bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
 
             // Bind and start to accept incoming connections.
             ChannelFuture channelFuture = bootstrap.bind(port).sync();

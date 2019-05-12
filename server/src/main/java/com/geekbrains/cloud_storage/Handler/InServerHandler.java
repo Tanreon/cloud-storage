@@ -33,15 +33,15 @@ public class InServerHandler extends ChannelInboundHandlerAdapter {
         byte optionTypeByte = byteBuf.readByte();
         LOGGER.log(Level.INFO, "action: {0}, option: {1}", new Object[] { actionTypeByte, optionTypeByte });
 
-        ByteBuf metaEndBytes = Unpooled.buffer(2);
-        byteBuf.readBytes(metaEndBytes);
+//        ByteBuf metaEndBytes = Unpooled.buffer(2);
+//        byteBuf.readBytes(metaEndBytes);
 
-        if (metaEndBytes.readByte() == (byte)0 && metaEndBytes.readByte() == (byte)-1) {
-            LOGGER.log(Level.INFO, "meta end correct");
-        } else {
-            LOGGER.log(Level.INFO, "meta end NOT correct");
-            throw new Exception();
-        }
+//        if (metaEndBytes.readByte() == (byte)0 && metaEndBytes.readByte() == (byte)-1) {
+//            LOGGER.log(Level.INFO, "meta end correct");
+//        } else {
+//            LOGGER.log(Level.INFO, "meta end NOT correct");
+//            throw new Exception();
+//        }
 
         ActionType actionType = ActionType.fromByte(actionTypeByte);
 
