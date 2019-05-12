@@ -34,25 +34,28 @@ public class AccountSignInRequest {
 
             {
                 outputStream.write(new byte[] { ACTION_TYPE.getValue(), OPTION_TYPE.getValue() });
-                outputStream.write(Client.getNetwork().getEndBytes());
+//                outputStream.write(Client.getEndBytes());
 
                 LOGGER.log(Level.INFO, "Meta write: {0}", ACTION_TYPE);
             }
 
             {
-                outputStream.writeShort((short) this.login.length());
-                outputStream.write(this.login.getBytes());
+                byte[] loginBytes = this.login.getBytes();
+                outputStream.writeShort((short) loginBytes.length);
+                outputStream.write(loginBytes);
 
-                outputStream.writeShort((short) this.password.length());
-                outputStream.write(this.password.getBytes());
+                byte[] passwordBytes = this.password.getBytes();
+                outputStream.writeShort((short) passwordBytes.length);
+                outputStream.write(passwordBytes);
 
                 LOGGER.log(Level.INFO, "Data write: {0}", ACTION_TYPE);
             }
 
             {
-                outputStream.write(Client.getNetwork().getEndBytes());
+                outputStream.write(Client.getEndBytes());
                 LOGGER.log(Level.INFO, "End write: {0}", ACTION_TYPE);
             }
+
 
             Client.getNetwork().writeAndFlush(byteOutputStream);
         } catch (IOException ex) {

@@ -28,13 +28,13 @@ public class CommandFileListRequest {
 
             {
                 outputStream.write(new byte[] { ACTION_TYPE.getValue(), OPTION_TYPE.getValue() });
-                outputStream.write(Client.getNetwork().getEndBytes());
+//                outputStream.write(Client.getEndBytes());
 
                 LOGGER.log(Level.INFO, "Meta write: {0}", ACTION_TYPE);
             }
 
             {
-                outputStream.write(Client.getNetwork().getEndBytes());
+                outputStream.write(Client.getEndBytes());
                 LOGGER.log(Level.INFO, "End write: {0}", ACTION_TYPE);
             }
 

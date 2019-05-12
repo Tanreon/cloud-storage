@@ -18,41 +18,6 @@ public class GUI {
     private Stage signInStage;
     private Stage signUpStage;
 
-    public GUI() { // TODO пересмотреть, какой то говнокод
-////        primaryStage.setOnCloseRequest(event -> {
-////            if (network.getSocketChannel().isConnected()) {
-////                try {
-////                    network.close();
-////                } catch (IOException e) {
-////                    e.printStackTrace();
-////                }
-////            }
-////
-////            Platform.exit();
-////            System.exit(0);
-////        });
-
-//        {
-//            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
-//
-//            this.mainStage.setTitle(GUI.WINDOW_TITLE);
-//            this.mainStage.setScene(new Scene(fxmlLoader.load()));
-//        }
-//
-//        if (Client.getAuth().isSignedIn()) {
-//            this.mainStage.show();
-//        } else {
-//            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/signIn.fxml"));
-//
-//            Stage stage = new Stage();
-//            stage.setTitle(String.format("%s: %s", GUI.WINDOW_TITLE, SignInController.SCENE_TITLE));
-//            stage.setScene(new Scene(fxmlLoader.load()));
-//            stage.show();
-//
-//            this.signInStage = stage;
-//        }
-    }
-
     public void initMainWindow(Stage primaryStage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
 

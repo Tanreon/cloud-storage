@@ -1,14 +1,17 @@
 package com.geekbrains.cloud_storage;
 
 import com.geekbrains.cloud_storage.Action.CommandFileListRequest;
+import com.geekbrains.cloud_storage.Action.DownloadFileRequest;
 import com.geekbrains.cloud_storage.Contract.AbstractFileListCellView;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.util.Callback;
 
 import java.io.IOException;
@@ -68,10 +71,9 @@ public class MainController implements Initializable {
             this.serverStorageFileNameColumn.setCellValueFactory(callback);
         }
 
-
         {
             Callback<TableColumn.CellDataFeatures<AbstractFileListCellView, String>, ObservableValue<String>> callback = param -> {
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss"); // FIXME вынести в отдельную константу
 
                 return new SimpleStringProperty(simpleDateFormat.format(param.getValue().getCreatedAt().toEpochMilli()));
             };
@@ -131,10 +133,41 @@ public class MainController implements Initializable {
             this.clientStorageFileSizeColumn.setCellValueFactory(callback);
             this.serverStorageFileSizeColumn.setCellValueFactory(callback);
         }
+
+        {
+            this.serverStorageTableView.setRowFactory(tableView -> {
+                final TableRow<AbstractFileListCellView> tableRow = new TableRow<>();
+                final ContextMenu contextMenu = new ContextMenu();
+
+                MenuItem downloadMenuItem = new MenuItem("Download");
+                downloadMenuItem.setOnAction(event -> {
+                    LOGGER.log(Level.INFO, "DOWNLOAD File command {0}", tableRow.getItem().getName());
+                    if (! Client.getNetwork().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+                        return;
+                    }
+
+                    new Thread(() -> new DownloadFileRequest(tableRow.getItem().getName())).start();
+                });
+
+//                MenuItem deleteMenuItem = new MenuItem("Delete"); // TODO реализовать функционал
+//                deleteMenuItem.setOnAction(event -> {
+//                    System.out.println("delete item " + tableRow.getItem().getName());
+//                });
+
+                contextMenu.getItems().addAll(downloadMenuItem);
+
+                // Set context menu on row, but use a binding to make it only show for non-empty rows:
+                tableRow.contextMenuProperty().bind(Bindings.when(tableRow.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu));
+
+                tableView.setContextMenu(contextMenu);
+
+                return tableRow;
+            });
+        }
     }
 
     private void updateServerStorageTableView() {
-        if (! Client.getNetwork().isSocketWritable() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+        if (! Client.getNetwork().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
         }
 
@@ -164,7 +197,7 @@ public class MainController implements Initializable {
         new Thread(() -> {
             while (true) {
                 Client.getGui().runInThread(gui -> {
-                    if (Client.getNetwork().isSocketWritable()) { // TODO переделать определение состояния сокета
+                    if (Client.getNetwork().isOpen()) { // TODO переделать определение состояния сокета
                         this.connectionStatusLabel.setText("подключен");
                     } else {
                         this.connectionStatusLabel.setText("не подключен");

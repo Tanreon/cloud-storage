@@ -2,6 +2,8 @@ package com.geekbrains.cloud_storage.Action;
 
 import com.geekbrains.cloud_storage.*;
 import com.geekbrains.cloud_storage.Contract.OptionType;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -17,6 +19,17 @@ public class CommandFileListResponse extends AbstractResponse {
 
     private short status;
     private String message;
+
+    public CommandFileListResponse(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+        this.ctx = ctx;
+        this.msg = msg;
+
+        // Run protocol request processing
+        this.receiveDataByProtocol();
+
+        // Run request processing
+        this.run();
+    }
 
     public CommandFileListResponse(SocketChannel socketChannel) throws Exception {
         this.socketChannel = socketChannel;
@@ -55,20 +68,20 @@ public class CommandFileListResponse extends AbstractResponse {
         DataInputStream inputStream = new DataInputStream(byteArrayInputStream);
 
         { // readResponse status
-            this.status = inputStream.readShort();
+            this.status = this.msg.readShort();
         }
 
         { // readResponse message
-            int messageLength = inputStream.readInt();
+            int messageLength = this.msg.readInt();
 
             if (messageLength != 0) {
                 byte[] messageBytes = new byte[messageLength];
-                inputStream.read(messageBytes);
+                this.msg.readBytes(messageBytes);
                 this.message = new String(messageBytes);
             }
         }
 
-        if (this.isResponseEndReached(byteArrayInputStream)) { // check end
+        if (this.isResponseEndReached(this.msg)) { // check end
             LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
 
             return;
@@ -79,35 +92,35 @@ public class CommandFileListResponse extends AbstractResponse {
         { // read files list
             MainController mainController = (MainController) Client.getGui().getMainStage().getUserData();
 
-            while (inputStream.available() > 0 && ! this.isResponseEndReached(byteArrayInputStream)) {
+            while (this.msg.readableBytes() > 0 && ! this.isResponseEndReached(this.msg)) {
                 ServerFileListCellView fileListCellView = new ServerFileListCellView();
 
                 { // read name
-                    int nameLength = inputStream.readInt();
+                    int nameLength = this.msg.readInt();
 
                     byte[] nameBytes = new byte[nameLength];
-                    inputStream.read(nameBytes);
+                    this.msg.readBytes(nameBytes);
 
                     fileListCellView.setName(new String(nameBytes));
                 }
 
                 { // read size
-                    fileListCellView.setSize(inputStream.readLong());
+                    fileListCellView.setSize(this.msg.readLong());
                 }
 
                 { // read created at
-                    fileListCellView.setCreatedAt(inputStream.readLong());
+                    fileListCellView.setCreatedAt(this.msg.readLong());
                 }
 
                 { // read updated at
-                    fileListCellView.setModifiedAt(inputStream.readLong());
+                    fileListCellView.setModifiedAt(this.msg.readLong());
                 }
 
                 mainController.getServerStorageTableView().getItems().add(fileListCellView);
             }
         }
 
-        if (this.isResponseEndReached(byteArrayInputStream)) { // check end
+        if (this.isResponseEndReached(this.msg)) { // check end
             LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
         } else {
             LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");

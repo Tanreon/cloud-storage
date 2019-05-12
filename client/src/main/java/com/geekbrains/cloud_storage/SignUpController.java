@@ -34,15 +34,8 @@ public class SignUpController {
 
     @FXML
     public void handleSignUpButtonOnAction(ActionEvent actionEvent) {
-        if (! Client.getNetwork().isSocketWritable()) {
-            Platform.runLater(() -> {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.initStyle(StageStyle.UTILITY);
-                alert.setTitle("Ошибка");
-                alert.setHeaderText("Ошибка сети");
-                alert.setContentText("Запрошенная операция не может быть выполнена. Выполняется переподключение, попробуйте через несколько минут.");
-                alert.showAndWait();
-            });
+        if (! Client.getNetwork().isOpen()) {
+            Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Ошибка сети", "Запрошенная операция не может быть выполнена. Выполняется переподключение, попробуйте через несколько минут."));
 
             return;
         }

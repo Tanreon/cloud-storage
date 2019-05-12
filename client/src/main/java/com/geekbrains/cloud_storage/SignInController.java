@@ -32,7 +32,7 @@ public class SignInController {
     }
 
     public void handleSignInButtonOnAction(ActionEvent actionEvent) throws IOException {
-        if (! Client.getNetwork().isSocketWritable()) {
+        if (! Client.getNetwork().isOpen()) {
             Platform.runLater(() -> {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.initStyle(StageStyle.UTILITY);

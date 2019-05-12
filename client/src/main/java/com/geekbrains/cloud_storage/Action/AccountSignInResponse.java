@@ -3,6 +3,8 @@ package com.geekbrains.cloud_storage.Action;
 import com.geekbrains.cloud_storage.ActionType;
 import com.geekbrains.cloud_storage.Client;
 import com.geekbrains.cloud_storage.Contract.OptionType;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 
 import java.io.*;
 import java.nio.channels.SocketChannel;
@@ -19,6 +21,17 @@ public class AccountSignInResponse extends AbstractResponse {
     private String message;
     private String key;
 
+    public AccountSignInResponse(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+        this.ctx = ctx;
+        this.msg = msg;
+
+        // Run protocol request processing
+        this.receiveDataByProtocol();
+
+        // Run request processing
+        this.run();
+    }
+
     public AccountSignInResponse(SocketChannel socketChannel) throws Exception {
         this.socketChannel = socketChannel;
 
@@ -28,6 +41,92 @@ public class AccountSignInResponse extends AbstractResponse {
         // Run request processing
         this.run();
     }
+
+    protected void receiveDataByProtocol() throws Exception {
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(this.readResponse().toByteArray());
+        DataInputStream inputStream = new DataInputStream(byteArrayInputStream);
+
+        { // readResponse status
+            this.status = this.msg.readShort();
+        }
+
+        { // readResponse message
+            int messageLength = this.msg.readInt();
+
+            if (messageLength != 0) {
+                byte[] messageBytes = new byte[messageLength];
+                this.msg.readBytes(messageBytes);
+                this.message = new String(messageBytes);
+            }
+        }
+
+        if (this.isResponseEndReached(this.msg)) { // check end
+            LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
+
+            return;
+        } else {
+            LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
+        }
+
+        { // get key
+            int keyLength = this.msg.readInt();
+
+            byte[] keyBytes = new byte[keyLength];
+            this.msg.readBytes(keyBytes);
+            this.key = new String(keyBytes);
+        }
+
+        if (this.isResponseEndReached(this.msg)) { // check end
+            LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
+        } else {
+            LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
+
+            throw new Exception("End bytes not received");
+        }
+    }
+
+//    protected void receiveDataByProtocol() throws Exception {
+//        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(this.readResponse().toByteArray());
+//        DataInputStream inputStream = new DataInputStream(byteArrayInputStream);
+//
+//        { // readResponse status
+//            this.status = inputStream.readShort();
+//        }
+//
+//        { // readResponse message
+//            int messageLength = inputStream.readInt();
+//
+//            if (messageLength != 0) {
+//                byte[] messageBytes = new byte[messageLength];
+//                inputStream.read(messageBytes);
+//                this.message = new String(messageBytes);
+//            }
+//        }
+//
+//        if (this.isResponseEndReached(byteArrayInputStream)) { // check end
+//            LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
+//
+//            return;
+//        } else {
+//            LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
+//        }
+//
+//        { // get key
+//            int keyLength = inputStream.readInt();
+//
+//            byte[] keyBytes = new byte[keyLength];
+//            inputStream.read(keyBytes);
+//            this.key = new String(keyBytes);
+//        }
+//
+//        if (this.isResponseEndReached(byteArrayInputStream)) { // check end
+//            LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
+//        } else {
+//            LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
+//
+//            throw new Exception("End bytes not received");
+//        }
+//    }
 
     protected void run() {
         if (this.status == 200) {
@@ -48,49 +147,6 @@ public class AccountSignInResponse extends AbstractResponse {
                 default:
                     Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Вход", "Неизвестная ошибка, попробуйте позже."));
             }
-        }
-    }
-
-    protected void receiveDataByProtocol() throws Exception {
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(this.readResponse().toByteArray());
-        DataInputStream inputStream = new DataInputStream(byteArrayInputStream);
-
-        { // readResponse status
-            this.status = inputStream.readShort();
-        }
-
-        { // readResponse message
-            int messageLength = inputStream.readInt();
-
-            if (messageLength != 0) {
-                byte[] messageBytes = new byte[messageLength];
-                inputStream.read(messageBytes);
-                this.message = new String(messageBytes);
-            }
-        }
-
-        if (this.isResponseEndReached(byteArrayInputStream)) { // check end
-            LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
-
-            return;
-        } else {
-            LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
-        }
-
-        { // get key
-            int keyLength = inputStream.readInt();
-
-            byte[] keyBytes = new byte[keyLength];
-            inputStream.read(keyBytes);
-            this.key = new String(keyBytes);
-        }
-
-        if (this.isResponseEndReached(byteArrayInputStream)) { // check end
-            LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
-        } else {
-            LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
-
-            throw new Exception("End bytes not received");
         }
     }
 }
