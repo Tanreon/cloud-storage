@@ -16,8 +16,6 @@ import java.util.logging.Logger;
 public class CommandDeleteFileAction extends AbstractAction {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-    private final String STORAGE_PATH = "server_storage";
-
     private final ActionType ACTION_TYPE = ActionType.COMMAND;
     private final OptionType OPTION_TYPE = CommandOptionType.DELETE_FILE;
 
@@ -78,7 +76,7 @@ public class CommandDeleteFileAction extends AbstractAction {
 
     @Override
     protected boolean run() {
-        Path filePath = Paths.get(STORAGE_PATH, this.login, this.fileName);
+        Path filePath = Paths.get(Server.STORAGE_PATH, this.login, this.fileName);
 
         if (!filePath.toFile().exists()) {
             LOGGER.log(Level.INFO, "{0} -> File not found: {1}", new Object[]{this.ctx.channel().id(), this.fileName});

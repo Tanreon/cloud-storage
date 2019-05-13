@@ -14,7 +14,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Server {
-    private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
+    public static final Logger LOGGER = Logger.getLogger(Server.class.getName());
+    public static final String STORAGE_PATH = "server_storage";
 
     private static SQLHandler sqlHandler;
 

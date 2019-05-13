@@ -22,8 +22,6 @@ import java.util.stream.Stream;
 public class CommandFileListAction extends AbstractAction {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-    private final String STORAGE_PATH = "server_storage";
-
     private final ActionType ACTION_TYPE = ActionType.COMMAND;
     private final OptionType OPTION_TYPE = CommandOptionType.FILE_LIST;
 
@@ -72,7 +70,7 @@ public class CommandFileListAction extends AbstractAction {
 
     @Override
     protected boolean run() {
-        Path storage = Paths.get(STORAGE_PATH, this.login);
+        Path storage = Paths.get(Server.STORAGE_PATH, this.login);
 
         try {
             this.fileStream = Files.list(storage);

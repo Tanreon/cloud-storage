@@ -19,8 +19,6 @@ import java.util.logging.Logger;
 public class DownloadFileAction extends AbstractAction {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-    private final String STORAGE_PATH = "server_storage";
-
     private final ActionType ACTION_TYPE = ActionType.DOWNLOAD;
     private final OptionType OPTION_TYPE = DownloadOptionType.FILE;
 
@@ -83,7 +81,7 @@ public class DownloadFileAction extends AbstractAction {
 
     @Override
     protected boolean run() throws Exception {
-        Path storage = Paths.get(STORAGE_PATH, this.login, this.fileName);
+        Path storage = Paths.get(Server.STORAGE_PATH, this.login, this.fileName);
 
         if (! storage.toFile().exists()) {
             LOGGER.log(Level.INFO, "{0} -> File not found: {1}", new Object[] { this.ctx.channel().id(), this.fileName });

@@ -1,6 +1,7 @@
 package com.geekbrains.cs.client.Response;
 
 import com.geekbrains.cs.client.Client;
+import com.geekbrains.cs.client.Controller.MainController;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -95,6 +96,8 @@ public class DownloadFileResponse extends AbstractResponse {
                     Thread.sleep(100);
                 }
             }
+
+            Client.getGui().runInThread(gui -> ((MainController) gui.getMainStage().getUserData()).updateClientStorageTableView(this.fileDataPart == this.fileDataBlocksCount));
         } else {
             switch (this.message) { // TODO дополнительные ошибки
                 case "FILE_NOT_FOUND":

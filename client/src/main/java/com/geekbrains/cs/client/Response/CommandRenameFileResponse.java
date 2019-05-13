@@ -43,12 +43,7 @@ public class CommandRenameFileResponse extends AbstractResponse {
 
     protected void run() {
         if (this.status == 200) {
-            Client.getGui().runInThread(gui -> {
-                MainController mainController = (MainController) gui.getMainStage().getUserData();
-                mainController.getServerStorageTableView().getItems().clear();
-            });
-
-            new CommandFileListRequest();
+            Client.getGui().runInThread(gui -> ((MainController) gui.getMainStage().getUserData()).updateServerStorageTableView(true));
         } else {
             switch (this.message) { // TODO дополнительные ошибки
                 case "OLD_FILE_NOT_FOUND":

@@ -1,11 +1,8 @@
 package com.geekbrains.cs.client.Controller;
 
 import com.geekbrains.cs.client.Contract.SizeUnit;
-import com.geekbrains.cs.client.Request.CommandDeleteFileRequest;
-import com.geekbrains.cs.client.Request.CommandFileListRequest;
-import com.geekbrains.cs.client.Request.DownloadFileRequest;
+import com.geekbrains.cs.client.Request.*;
 import com.geekbrains.cs.client.Client;
-import com.geekbrains.cs.client.Request.CommandRenameFileRequest;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
@@ -24,13 +21,29 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class MainController implements Initializable {
+    protected Instant clientTableViewLastUpdate;
+    protected Instant serverTableViewLastUpdate;
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        this.initTableView();
+
+        Client.getGui().getMainStage().setOnShown(event -> {
+            this.updateConnectionStatusLabel();
+            this.updateClientStorageTableView(true);
+            this.updateServerStorageTableView(true);
+        });
+    }
+
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
+
     @FXML
     protected TableView<AbstractFileRow> clientStorageTableView;
     @FXML
@@ -47,27 +60,9 @@ public class MainController implements Initializable {
     protected TableColumn<AbstractFileRow, String> serverStorageFileCreatedAtColumn;
     @FXML
     protected TableColumn<AbstractFileRow, String> serverStorageFileSizeColumn;
+
     @FXML
     protected Label connectionStatusLabel;
-    @FXML
-    protected HBox currentProgressHBox;
-    @FXML
-    protected Label currentFileNameLabel;
-
-    public TableView<AbstractFileRow> getServerStorageTableView() {
-        return this.serverStorageTableView;
-    }
-
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        this.initTableView();
-
-        Client.getGui().getMainStage().setOnShown(event -> {
-            this.updateConnectionStatusLabel();
-            this.updateClientStorageTableView();
-            this.updateServerStorageTableView();
-        });
-    }
 
     private void initTableView() {
         {
@@ -141,39 +136,42 @@ public class MainController implements Initializable {
         }
 
         {
+            this.clientStorageTableView.setRowFactory(tableView -> {
+                final TableRow<AbstractFileRow> tableRow = new TableRow<>();
+                final ContextMenu contextMenu = new ContextMenu();
+
+                MenuItem downloadMenuItem = new MenuItem("Upload");
+
+                downloadMenuItem.setOnAction(event -> this.onClientUploadClick(tableRow));
+
+                MenuItem renameMenuItem = new MenuItem("Rename");
+                renameMenuItem.setOnAction(event -> this.onClientRenameClick(tableRow));
+
+                MenuItem deleteMenuItem = new MenuItem("Delete");
+                deleteMenuItem.setOnAction(event -> this.onClientDeleteClick(tableRow));
+
+                contextMenu.getItems().addAll(downloadMenuItem, renameMenuItem, deleteMenuItem);
+
+                // Set context menu on row, but use a binding to make it only show for non-empty rows:
+                tableRow.contextMenuProperty().bind(Bindings.when(tableRow.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu)); // FIXME все равно вылазит меню на пустом месте при ПКМ
+
+                tableView.setContextMenu(contextMenu);
+
+                return tableRow;
+            });
+
             this.serverStorageTableView.setRowFactory(tableView -> {
                 final TableRow<AbstractFileRow> tableRow = new TableRow<>();
                 final ContextMenu contextMenu = new ContextMenu();
 
                 MenuItem downloadMenuItem = new MenuItem("Download");
-                downloadMenuItem.setOnAction(event -> {
-                    LOGGER.log(Level.INFO, "DOWNLOAD File command {0}", tableRow.getItem().getName());
-                    if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
-                        return;
-                    }
-
-                    new Thread(() -> new DownloadFileRequest(tableRow.getItem().getName())).start();
-                });
+                downloadMenuItem.setOnAction(event -> this.onServerDownloadClick(tableRow));
 
                 MenuItem renameMenuItem = new MenuItem("Rename");
-                renameMenuItem.setOnAction(event -> {
-                    LOGGER.log(Level.INFO, "RENAME_FILE File command {0}", tableRow.getItem().getName());
-                    if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
-                        return;
-                    }
-
-                    new Thread(() -> new CommandRenameFileRequest(tableRow.getItem().getName(), "new-file-name")).start(); // TODO 2 arg
-                });
+                renameMenuItem.setOnAction(event -> this.onServerRenameClick(tableRow));
 
                 MenuItem deleteMenuItem = new MenuItem("Delete");
-                deleteMenuItem.setOnAction(event -> {
-                    LOGGER.log(Level.INFO, "DELETE_FILE File command {0}", tableRow.getItem().getName());
-                    if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
-                        return;
-                    }
-
-                    new Thread(() -> new CommandDeleteFileRequest(tableRow.getItem().getName())).start();
-                });
+                deleteMenuItem.setOnAction(event -> this.onServerDeleteClick(tableRow));
 
                 contextMenu.getItems().addAll(downloadMenuItem, renameMenuItem, deleteMenuItem);
 
@@ -187,7 +185,7 @@ public class MainController implements Initializable {
         }
     }
 
-    private void updateConnectionStatusLabel() {
+    public void updateConnectionStatusLabel() {
         new Thread(() -> {
             while (true) {
                 Client.getGui().runInThread(gui -> {
@@ -205,6 +203,152 @@ public class MainController implements Initializable {
                 }
             }
         }).start();
+    }
+
+    public TableView<AbstractFileRow> getServerStorageTableView() {
+        return this.serverStorageTableView;
+    }
+
+    public void updateClientStorageTableView(boolean force) {
+        if (force || this.canUpdate(this.clientTableViewLastUpdate)) { // фиксим ненужные обновления 23838 раз в секунду
+            this.clientTableViewLastUpdate = Instant.now();
+        } else {
+            return;
+        }
+
+        { // clear
+            this.clientStorageTableView.getItems().clear();
+        }
+
+        { // update
+            Path storage = Paths.get(Client.STORAGE_PATH);
+
+            Stream<Path> files;
+
+            try {
+                files = Files.list(storage);
+            } catch (NoSuchFileException e) {
+                LOGGER.log(Level.WARNING, "ERROR: Local path not found");
+                return;
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "ERROR: IOException when reading client dir");
+                e.printStackTrace();
+                return;
+            }
+
+            files.forEach(path -> this.clientStorageTableView.getItems().add(new ClientFileRow(path)));
+        }
+    }
+
+    public void updateServerStorageTableView(boolean force) {
+        if (force || this.canUpdate(this.serverTableViewLastUpdate)) { // фиксим ненужные обновления 23838 раз в секунду
+            this.serverTableViewLastUpdate = Instant.now();
+        } else {
+            return;
+        }
+
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        { // clear
+            this.serverStorageTableView.getItems().clear();
+        }
+
+        { // update
+            new CommandFileListRequest();
+        }
+    }
+
+    private void onClientUploadClick(TableRow<AbstractFileRow> tableRow) {
+        LOGGER.log(Level.INFO, "UPLOAD_CLIENT File command {0}", tableRow.getItem().getName());
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        new UploadFileRequest(tableRow.getItem().getName());
+    }
+
+    private void onClientRenameClick(TableRow<AbstractFileRow> tableRow) {
+        LOGGER.log(Level.INFO, "RENAME_CLIENT File command {0}", tableRow.getItem().getName());
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        {
+            String oldFileName = tableRow.getItem().getName();
+
+            Path oldFilePath = Paths.get(Client.STORAGE_PATH, oldFileName);
+            Path newFilePath = Paths.get(Client.STORAGE_PATH, "new-file-name");
+
+            if (newFilePath.toFile().exists()) {
+                LOGGER.log(Level.INFO, "New file already exists: {0}", oldFileName);
+                Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Переименование", "Файл с таким именем уже существует."));
+                return;
+            }
+
+            oldFilePath.toFile().renameTo(newFilePath.toFile());
+        }
+
+        this.updateClientStorageTableView(true);
+    }
+
+    private void onClientDeleteClick(TableRow<AbstractFileRow> tableRow) {
+        LOGGER.log(Level.INFO, "DELETE_CLIENT File command {0}", tableRow.getItem().getName());
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        {
+            String fileName = tableRow.getItem().getName();
+
+            Path filePath = Paths.get(Client.STORAGE_PATH, fileName);
+
+            if (! filePath.toFile().exists()) {
+                LOGGER.log(Level.INFO, "File not found: {0}", fileName);
+
+                return;
+            }
+
+            filePath.toFile().delete();
+        }
+
+        this.updateClientStorageTableView(true);
+    }
+
+    private void onServerDownloadClick(TableRow<AbstractFileRow> tableRow) {
+        LOGGER.log(Level.INFO, "DOWNLOAD_SERVER File command {0}", tableRow.getItem().getName());
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        new DownloadFileRequest(tableRow.getItem().getName());
+    }
+
+    private void onServerRenameClick(TableRow<AbstractFileRow> tableRow) {
+        LOGGER.log(Level.INFO, "RENAME_SERVER File command {0}", tableRow.getItem().getName());
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        new CommandRenameFileRequest(tableRow.getItem().getName(), "new-file-name"); // TODO 2 arg
+    }
+
+    private void onServerDeleteClick(TableRow<AbstractFileRow> tableRow) {
+        LOGGER.log(Level.INFO, "DELETE_SERVER File command {0}", tableRow.getItem().getName());
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        new CommandDeleteFileRequest(tableRow.getItem().getName());
+    }
+
+    private boolean canUpdate(Instant lastUpdate) {
+        if (lastUpdate != null && Instant.now().minus(5, ChronoUnit.SECONDS).compareTo(lastUpdate) < 0) {
+            return false;
+        }
+
+        return true;
     }
 
     public abstract static class AbstractFileRow {
@@ -261,32 +405,5 @@ public class MainController implements Initializable {
         public void setModifiedAt(long createdAtMillis) {
             this.modifiedAt = Instant.ofEpochMilli(createdAtMillis);
         }
-    }
-
-    private void updateServerStorageTableView() {
-        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
-            return;
-        }
-
-        new Thread(CommandFileListRequest::new).start();
-    }
-
-    private void updateClientStorageTableView() {
-        Path storage = Paths.get("client_storage");
-
-        Stream<Path> files;
-
-        try {
-            files = Files.list(storage);
-        } catch (NoSuchFileException e) {
-            LOGGER.log(Level.WARNING, "ERROR: Local path not found");
-            return;
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "ERROR: IOException when reading client dir");
-            e.printStackTrace();
-            return;
-        }
-
-        files.forEach(path -> this.clientStorageTableView.getItems().add(new ClientFileRow(path)));
     }
 }

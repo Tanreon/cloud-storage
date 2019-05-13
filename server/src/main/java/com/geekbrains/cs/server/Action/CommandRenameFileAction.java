@@ -17,8 +17,6 @@ import java.util.logging.Logger;
 public class CommandRenameFileAction extends AbstractAction {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-    private final String STORAGE_PATH = "server_storage";
-
     private final ActionType ACTION_TYPE = ActionType.COMMAND;
     private final OptionType OPTION_TYPE = CommandOptionType.RENAME_FILE;
 
@@ -91,7 +89,7 @@ public class CommandRenameFileAction extends AbstractAction {
 
     @Override
     protected boolean run() {
-        Path oldFilePath = Paths.get(STORAGE_PATH, this.login, this.oldFileName);
+        Path oldFilePath = Paths.get(Server.STORAGE_PATH, this.login, this.oldFileName);
 
         if (!oldFilePath.toFile().exists()) {
             LOGGER.log(Level.INFO, "{0} -> File not found: {1}", new Object[]{this.ctx.channel().id(), this.oldFileName});
@@ -100,7 +98,7 @@ public class CommandRenameFileAction extends AbstractAction {
             return false;
         }
 
-        Path newFilePath = Paths.get(STORAGE_PATH, this.login, this.newFileName);
+        Path newFilePath = Paths.get(Server.STORAGE_PATH, this.login, this.newFileName);
 
         if (newFilePath.toFile().exists()) {
             LOGGER.log(Level.INFO, "{0} -> File not found: {1}", new Object[]{this.ctx.channel().id(), this.oldFileName});

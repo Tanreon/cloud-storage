@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 
 public class Client extends Application {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
+    public static final String STORAGE_PATH = "client_storage";
 
     private static Channel networkChannel;
     private static GUI gui = new GUI();
