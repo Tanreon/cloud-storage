@@ -14,13 +14,13 @@ public class SignInController {
     public static final String SCENE_TITLE = "Вход";
 
     @FXML
-    public TextField loginTextField;
+    protected TextField loginTextField;
     @FXML
-    public TextField passwordTextField;
+    protected TextField passwordTextField;
     @FXML
-    public Button signInButton;
+    protected Button signInButton;
     @FXML
-    public Hyperlink signUpLink;
+    protected Hyperlink signUpLink;
 
     @FXML
     public void handleSignUpLinkOnAction(ActionEvent actionEvent) throws IOException {

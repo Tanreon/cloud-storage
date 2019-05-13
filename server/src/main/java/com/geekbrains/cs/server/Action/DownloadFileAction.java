@@ -9,8 +9,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
@@ -26,15 +24,17 @@ public class DownloadFileAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.DOWNLOAD;
     private final OptionType OPTION_TYPE = DownloadOptionType.FILE;
 
+    private final long BUFFER_LENGTH = 60 * 1024;
+
     ////////////////////
     private String login = "test";
     private String fileName;
     private RandomAccessFile randomAccessFile;
     ////////////////////
 
-    public DownloadFileAction(ChannelHandlerContext ctx, ByteBuf message) throws Exception {
+    public DownloadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
         this.ctx = ctx;
-        this.byteBuf = message;
+        this.byteBuf = byteBuf;
 
         // Run protocol request processing
         if (!this.receiveDataByProtocol()) {
@@ -54,16 +54,13 @@ public class DownloadFileAction extends AbstractAction {
 
     @Override
     protected boolean receiveDataByProtocol() {
-        if (! byteBuf.isReadable()) {
+        if (! this.byteBuf.isReadable()) {
             rejectEmpty(ACTION_TYPE, OPTION_TYPE);
             return false;
         }
 
         try {
-            int fileNameLength = this.byteBuf.readInt();
-            byte[] fileNameBytes = new byte[fileNameLength];
-            this.byteBuf.readBytes(fileNameBytes);
-            this.fileName = new String(fileNameBytes);
+            this.fileName = this.readStringByInt();
 
             LOGGER.log(Level.INFO, "{0} -> File name receiving success", this.ctx.channel().id());
         } catch (Exception ex) {
@@ -104,46 +101,53 @@ public class DownloadFileAction extends AbstractAction {
     protected boolean sendDataByProtocol() throws IOException {
         LOGGER.log(Level.INFO, "{0} -> Client success start download file part: {1}", new Object[] { this.ctx.channel().id(), this.fileName });
 
-        long filePartsCount = (long) Math.ceil((double) this.randomAccessFile.length() / 4096);
+        long filePartsCount = (long) Math.ceil((double) this.randomAccessFile.length() / BUFFER_LENGTH);
 
-        ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
-        DataOutputStream outputStream = new DataOutputStream(byteOutputStream);
-
-        for (int filePart = 1; filePart <= filePartsCount; filePart++) { // TODO оптимизировать
+        for (int filePart = 1; filePart <= filePartsCount; filePart++) {
             LOGGER.log(Level.INFO, "{0} -> Sending file part, {1} of file: {2}", new Object[]{this.ctx.channel().id(), filePart, this.fileName});
 
             {
-                outputStream.write(this.resp(new Response(ACTION_TYPE, OPTION_TYPE, 200, "OK", false))); // FIXME возможно нет ничего плохого в том что делается два write на сокете. Дублирование кода
+                ctx.write(new Response(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
             }
+
+            ByteBuf byteBuf = Unpooled.directBuffer();
 
             { // write file name
                 byte[] fileNameBytes = this.fileName.getBytes();
-                outputStream.writeInt(fileNameBytes.length); // {1}
-                outputStream.write(fileNameBytes); // {2}
+                byteBuf.writeInt(fileNameBytes.length); // {1}
+                byteBuf.writeBytes(fileNameBytes); // {2}
             }
 
             { // write full file size in 4096 bytes block
-                outputStream.writeLong(filePartsCount); // {3}
+                byteBuf.writeLong(filePartsCount); // {3}
             }
 
             { // write bytes part
-                outputStream.writeInt(filePart); // {4}
+                byteBuf.writeInt(filePart); // {4}
 
-                long availableBytes = (filePart * 4096) < this.randomAccessFile.length() ? 4096 : 4096 - ((filePart * 4096) - this.randomAccessFile.length());
+                long availableBytes;
+
+                if (BUFFER_LENGTH > this.randomAccessFile.length()) {
+                    availableBytes = this.randomAccessFile.length();
+                } else {
+                    if ((filePart * BUFFER_LENGTH) > this.randomAccessFile.length()) {
+                        availableBytes = this.randomAccessFile.length() - ((filePart - 1) * BUFFER_LENGTH);
+                    } else {
+                        availableBytes = BUFFER_LENGTH;
+                    }
+                }
 
                 byte[] fileBytes = new byte[(int) availableBytes];
                 int bytesRead = this.randomAccessFile.read(fileBytes);
-                outputStream.writeInt(bytesRead); // {5}
-                outputStream.write(fileBytes); // {6}
+                byteBuf.writeInt(bytesRead); // {5}
+                byteBuf.writeBytes(fileBytes); // {6}
             }
 
             {
-                outputStream.write(new byte[]{(byte) 0, (byte) -1});
+                byteBuf.writeBytes(Server.getEndBytes());
             }
 
-            this.ctx.writeAndFlush(Unpooled.wrappedBuffer(byteOutputStream.toByteArray()));
-
-            byteOutputStream.reset();
+            this.ctx.writeAndFlush(byteBuf);
         }
 
         this.randomAccessFile.close();

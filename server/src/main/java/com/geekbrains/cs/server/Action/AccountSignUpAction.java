@@ -22,9 +22,9 @@ public class AccountSignUpAction extends AbstractAction {
     private String email = null;
     private String password = null;
 
-    public AccountSignUpAction(ChannelHandlerContext ctx, ByteBuf message) throws Exception {
+    public AccountSignUpAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = message;
+        this.byteBuf = byteBuf;
 
         // Run protocol request processing
         if (! this.receiveDataByProtocol()) {
@@ -44,16 +44,13 @@ public class AccountSignUpAction extends AbstractAction {
 
     @Override
     protected boolean receiveDataByProtocol() {
-        if (! byteBuf.isReadable()) {
+        if (! this.byteBuf.isReadable()) {
             rejectEmpty(ACTION_TYPE, OPTION_TYPE);
             return false;
         }
 
         try {
-            short loginLength = this.byteBuf.readShort();
-            byte[] loginBytes = new byte[loginLength];
-            this.byteBuf.readBytes(loginBytes);
-            this.login = new String(loginBytes);
+            this.login = this.readStringByShort();
 
             LOGGER.log(Level.INFO, "{0} -> Login receiving success: {1}", new Object[] { this.ctx.channel().id(), this.login });
         } catch (Exception ex) {
@@ -64,10 +61,7 @@ public class AccountSignUpAction extends AbstractAction {
         }
 
         try {
-            short emailLength = this.byteBuf.readShort();
-            byte[] emailBytes = new byte[emailLength];
-            this.byteBuf.readBytes(emailBytes);
-            this.email = new String(emailBytes);
+            this.email = this.readStringByShort();
 
             LOGGER.log(Level.INFO, "{0} -> Email receiving success: {1}", new Object[] { this.ctx.channel().id(), this.email });
         } catch (Exception ex) {
@@ -78,10 +72,7 @@ public class AccountSignUpAction extends AbstractAction {
         }
 
         try {
-            short passwordLength = this.byteBuf.readShort();
-            byte[] passwordBytes = new byte[passwordLength];
-            this.byteBuf.readBytes(passwordBytes);
-            this.password = new String(passwordBytes);
+            this.password = this.readStringByShort();
 
             LOGGER.log(Level.INFO, "{0} -> Password receiving success", this.ctx.channel().id());
         } catch (Exception ex) {

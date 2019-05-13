@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Paths;
@@ -15,14 +16,16 @@ public class DownloadFileResponse extends AbstractResponse {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
     private static final String STORAGE_PATH = "client_storage";
 
+    private final long BUFFER_LENGTH = 60 * 1024;
+
     private String fileName;
     private long fileDataBlocksCount;
     private int fileDataPart;
     private byte[] fileDataBytes;
 
-    public DownloadFileResponse(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+    public DownloadFileResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
         this.ctx = ctx;
-        this.byteBuf = msg;
+        this.byteBuf = byteBuf;
 
         // Run protocol request processing
         this.receiveDataByProtocol();
@@ -32,7 +35,13 @@ public class DownloadFileResponse extends AbstractResponse {
     }
 
     protected void receiveDataByProtocol() throws Exception {
-        this.readMeta();
+        if (this.byteBuf.isReadable()) {
+            this.readMeta();
+        } else {
+            LOGGER.log(Level.INFO, "Ошибка, мета информация не доступна");
+
+            return;
+        }
 
         if (this.byteBuf.isReadable()) { // check end
             LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
@@ -43,7 +52,7 @@ public class DownloadFileResponse extends AbstractResponse {
         }
 
         { // get filename
-            this.fileName = this.readString();
+            this.fileName = this.readStringByInt();
         }
 
         { // get full file size in 4096 bytes block
@@ -67,7 +76,7 @@ public class DownloadFileResponse extends AbstractResponse {
         }
     }
 
-    protected void run() throws IOException {
+    protected void run() throws IOException, InterruptedException {
         if (this.status == 200) {
             LOGGER.log(Level.INFO, "Запись части файла: filename {0}, part {1}", new Object[]{this.fileName, this.fileDataPart});
             File file = Paths.get(STORAGE_PATH, this.fileName).toFile();
@@ -76,10 +85,16 @@ public class DownloadFileResponse extends AbstractResponse {
                 file.delete();
             }
 
-            RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw");
-            randomAccessFile.seek(randomAccessFile.length());
-            randomAccessFile.write(this.fileDataBytes);
-            randomAccessFile.close();
+            while (true) {
+                try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
+                    randomAccessFile.seek((this.fileDataPart - 1) * BUFFER_LENGTH);
+                    randomAccessFile.write(this.fileDataBytes);
+
+                    break;
+                } catch (FileNotFoundException ignored) {
+                    Thread.sleep(100);
+                }
+            }
         } else {
             switch (this.message) { // TODO дополнительные ошибки
                 case "FILE_NOT_FOUND":

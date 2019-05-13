@@ -67,23 +67,29 @@ public class InClientHandler extends ChannelInboundHandlerAdapter {
 //                        new ErrorAction(ctx, actionType, downloadOptionType, 404, "UNKNOWN_REQUEST");
                 }
                 break;
-            case UPLOAD:
-                UploadOptionType uploadOptionType = UploadOptionType.fromByte(optionTypeByte);
-
-                switch (uploadOptionType) {
-                    case FILE:
-                        new UploadFileResponse(ctx, byteBuf);
-                        break;
+//            case UPLOAD:
+//                UploadOptionType uploadOptionType = UploadOptionType.fromByte(optionTypeByte);
+//
+//                switch (uploadOptionType) {
+//                    case FILE:
+//                        new UploadFileResponse(ctx, byteBuf);
+//                        break;
 //                    default:
 //                        new ErrorAction(ctx, actionType, uploadOptionType, 404, "UNKNOWN_REQUEST");
-                }
-                break;
+//                }
+//                break;
             case COMMAND:
                 CommandOptionType commandOptionType = CommandOptionType.fromByte(optionTypeByte);
 
                 switch (commandOptionType) {
                     case FILE_LIST:
                         new CommandFileListResponse(ctx, byteBuf);
+                        break;
+                    case RENAME_FILE:
+                        new CommandRenameFileResponse(ctx, byteBuf);
+                        break;
+                    case DELETE_FILE:
+                        new CommandDeleteFileResponse(ctx, byteBuf);
                         break;
 //                    default:
 //                        new ErrorAction(ctx, actionType, commandOptionType, 404, "UNKNOWN_REQUEST");
@@ -93,5 +99,9 @@ public class InClientHandler extends ChannelInboundHandlerAdapter {
 //                new ErrorAction(ctx, actionType, ErrorOptionType.UNKNOWN, 404, "UNKNOWN_REQUEST");
 //                LOGGER.log(Level.WARNING, "{0} -> Err request", ctx.channel().id());
         }
+
+        // ByteBuf.release() was not called before it's garbage-collected.
+        // See http://netty.io/wiki/reference-counted-objects.html for more information.
+        byteBuf.release();
     }
 }

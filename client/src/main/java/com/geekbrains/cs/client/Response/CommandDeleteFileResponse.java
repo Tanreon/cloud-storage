@@ -1,16 +1,18 @@
 package com.geekbrains.cs.client.Response;
 
 import com.geekbrains.cs.client.Client;
+import com.geekbrains.cs.client.Controller.MainController;
+import com.geekbrains.cs.client.Request.CommandFileListRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class AccountSignUpResponse extends AbstractResponse {
+public class CommandDeleteFileResponse extends AbstractResponse {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 
-    public AccountSignUpResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
+    public CommandDeleteFileResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
         this.byteBuf = byteBuf;
 
@@ -21,7 +23,7 @@ public class AccountSignUpResponse extends AbstractResponse {
         this.run();
     }
 
-    protected void receiveDataByProtocol() throws Exception {
+    protected void receiveDataByProtocol() {
         if (this.byteBuf.isReadable()) {
             this.readMeta();
         } else {
@@ -33,7 +35,7 @@ public class AccountSignUpResponse extends AbstractResponse {
         if (this.byteBuf.isReadable()) { // check end
             LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
 
-            throw new Exception("End bytes not received");
+            return;
         } else {
             LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
         }
@@ -42,17 +44,18 @@ public class AccountSignUpResponse extends AbstractResponse {
     protected void run() {
         if (this.status == 200) {
             Client.getGui().runInThread(gui -> {
-                gui.showInfoAlert("Успех", "Регистрация", "Вы успешно зарегистрировались.");
-
-                gui.getSignUpStage().show();
+                MainController mainController = (MainController) gui.getMainStage().getUserData();
+                mainController.getServerStorageTableView().getItems().clear();
             });
+
+            new CommandFileListRequest();
         } else {
-            switch (this.message) {
-                case "LOGIN_ALREADY_EXISTS":
-                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Регистрация", "Такой логин уже существует."));
+            switch (this.message) { // TODO дополнительные ошибки
+                case "FILE_NOT_FOUND":
+                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Удаление", "Файл не найден."));
                     break;
                 default:
-                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Регистрация", "Неизвестная ошибка, попробуйте позже."));
+                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Удаление", "Неизвестная ошибка, попробуйте позже."));
             }
         }
     }

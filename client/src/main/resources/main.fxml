@@ -24,6 +24,12 @@
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
             <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="NEVER" />
         </rowConstraints>
+        <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0">
+            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Локальное хранилище" />
+        </HBox>
+        <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="2">
+            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Хранилище на сервере" />
+        </HBox>
         <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.rowIndex="1">
             <padding>
                 <Insets left="5.0" />
@@ -54,11 +60,17 @@
                 </columnResizePolicy>
             </TableView>
         </HBox>
-        <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0">
-            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Локальное хранилище" />
-        </HBox>
-        <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="2">
-            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Хранилище на сервере" />
+        <HBox fx:id="currentProgressHBox" alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" visible="false" GridPane.rowIndex="2">
+            <GridPane.margin>
+                <Insets left="5.0" />
+            </GridPane.margin>
+            <ProgressBar prefWidth="200.0" progress="0.0" />
+            <Label text="Файл:">
+                <HBox.margin>
+                    <Insets left="5.0" right="5.0" />
+                </HBox.margin>
+            </Label>
+            <Label fx:id="currentFileNameLabel" text="filename.txt" />
         </HBox>
         <HBox alignment="CENTER_RIGHT" prefHeight="100.0" prefWidth="200.0" GridPane.columnIndex="2" GridPane.rowIndex="2">
             <GridPane.margin>
@@ -70,18 +82,6 @@
                 </HBox.margin>
             </Label>
             <Label fx:id="connectionStatusLabel" text="не подключен" />
-        </HBox>
-        <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" visible="false" GridPane.rowIndex="2">
-            <GridPane.margin>
-                <Insets left="5.0" />
-            </GridPane.margin>
-            <ProgressBar prefWidth="200.0" progress="0.0" />
-            <Label text="Файл:">
-                <HBox.margin>
-                    <Insets left="5.0" right="5.0" />
-                </HBox.margin>
-            </Label>
-            <Label text="filename.txt" />
         </HBox>
     </GridPane>
 </VBox>

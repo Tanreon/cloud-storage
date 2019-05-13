@@ -9,8 +9,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -35,9 +33,9 @@ public class CommandFileListAction extends AbstractAction {
 
     private Stream<Path> fileStream;
 
-    public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf message) throws Exception {
+    public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
         this.ctx = ctx;
-        this.byteBuf = message;
+        this.byteBuf = byteBuf;
 
         // Run protocol request processing
         if (!this.receiveDataByProtocol()) {
@@ -98,15 +96,9 @@ public class CommandFileListAction extends AbstractAction {
     protected boolean sendDataByProtocol() {
         LOGGER.log(Level.INFO, "{0} -> File list command success: {1}", new Object[]{this.ctx.channel().id(), this.login});
 
-        ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
-        DataOutputStream outputStream = new DataOutputStream(byteOutputStream);
-
         this.fileStream.forEach(item -> {
-            try {
-                outputStream.write(this.resp(new Response(ACTION_TYPE, OPTION_TYPE, 200, "OK", false))); // FIXME возможно нет ничего плохого в том что делается два write на сокете. Дублирование кода
-            } catch (IOException e) {
-                e.printStackTrace();
-                ctx.writeAndFlush(new Response(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
+            {
+                ctx.write(new Response(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
             }
 
             byte[] nameBytes = item.toFile().getName().getBytes();
@@ -123,26 +115,16 @@ public class CommandFileListAction extends AbstractAction {
                 modifiedAt = System.currentTimeMillis();
             }
 
-            try {
-                outputStream.writeInt(nameBytes.length);
-                outputStream.write(nameBytes);
-                outputStream.writeLong(size);
-                outputStream.writeLong(createdAt);
-                outputStream.writeLong(modifiedAt);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            ByteBuf byteBuf = Unpooled.directBuffer();
 
-            try {
-                outputStream.write(new byte[]{(byte) 0, (byte) -1});
-            } catch (IOException e) {
-                e.printStackTrace();
-                ctx.writeAndFlush(new Response(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
-            }
+            byteBuf.writeInt(nameBytes.length);
+            byteBuf.writeBytes(nameBytes);
+            byteBuf.writeLong(size);
+            byteBuf.writeLong(createdAt);
+            byteBuf.writeLong(modifiedAt);
+            byteBuf.writeBytes(Server.getEndBytes());
 
-            this.ctx.writeAndFlush(Unpooled.wrappedBuffer(byteOutputStream.toByteArray()));
-
-            byteOutputStream.reset();
+            this.ctx.writeAndFlush(byteBuf);
         });
 
         return true;

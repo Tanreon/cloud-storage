@@ -10,6 +10,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Server {
@@ -19,13 +20,17 @@ public class Server {
 
     private int port;
 
+    public static byte[] getEndBytes() { // FIXME убрать отсюда. тут этому не место
+        return new byte[] { 0, -1, 1, -1, 0 };
+    }
+
     public Server(int port) {
         this.port = port;
     }
 
     public static void main(String[] args) throws Exception {
         // init methods before start server
-        Common.initLogger(LOGGER);
+        Common.initLogger(LOGGER, Level.INFO);
 
         // start server
         new Server(8189).run();
@@ -48,7 +53,7 @@ public class Server {
             bootstrap.childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel channel) {
-                    channel.pipeline().addLast(new DelimiterBasedFrameDecoder(8196, Unpooled.wrappedBuffer(new byte[] { (byte) 0, (byte) -1 })));
+                    channel.pipeline().addLast(new DelimiterBasedFrameDecoder(65 * 1024, Unpooled.wrappedBuffer(Server.getEndBytes())));
                     channel.pipeline().addLast(new OutServerHandler(), new InServerHandler());
                 }
             });

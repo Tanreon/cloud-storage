@@ -4,10 +4,9 @@ import com.geekbrains.cs.client.Client;
 import com.geekbrains.cs.common.ActionType;
 import com.geekbrains.cs.common.Contract.OptionType;
 import com.geekbrains.cs.common.OptionType.AccountOptionType;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,39 +30,34 @@ public class AccountSignUpRequest {
     }
 
     private void sendDataByProtocol() {
-        try {
-            ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
-            DataOutputStream outputStream = new DataOutputStream(byteOutputStream);
+        ByteBuf byteBuf = Unpooled.directBuffer();
 
-            {
-                outputStream.write(new byte[] { ACTION_TYPE.getValue(), OPTION_TYPE.getValue() });
-                LOGGER.log(Level.INFO, "Meta write: {0}", ACTION_TYPE);
-            }
-
-            {
-                byte[] loginBytes = this.login.getBytes();
-                outputStream.writeShort((short) loginBytes.length);
-                outputStream.write(loginBytes);
-
-                byte[] emailBytes = this.email.getBytes();
-                outputStream.writeShort((short) emailBytes.length);
-                outputStream.write(emailBytes);
-
-                byte[] passwordBytes = this.password.getBytes();
-                outputStream.writeShort((short) passwordBytes.length);
-                outputStream.write(passwordBytes);
-
-                LOGGER.log(Level.INFO, "Data write: {0}", ACTION_TYPE);
-            }
-
-            {
-                outputStream.write(Client.getEndBytes());
-                LOGGER.log(Level.INFO, "End write: {0}", ACTION_TYPE);
-            }
-
-            Client.getNetworkChannel().writeAndFlush(byteOutputStream);
-        } catch (IOException ex) {
-            LOGGER.log(Level.WARNING, "Send exception: {0}", ex.getMessage());
+        {
+            byteBuf.writeBytes(new byte[]{ACTION_TYPE.getValue(), OPTION_TYPE.getValue()});
+            LOGGER.log(Level.INFO, "Meta write: {0}", ACTION_TYPE);
         }
+
+        {
+            byte[] loginBytes = this.login.getBytes();
+            byteBuf.writeShort((short) loginBytes.length);
+            byteBuf.writeBytes(loginBytes);
+
+            byte[] emailBytes = this.email.getBytes();
+            byteBuf.writeShort((short) emailBytes.length);
+            byteBuf.writeBytes(emailBytes);
+
+            byte[] passwordBytes = this.password.getBytes();
+            byteBuf.writeShort((short) passwordBytes.length);
+            byteBuf.writeBytes(passwordBytes);
+
+            LOGGER.log(Level.INFO, "Data write: {0}", ACTION_TYPE);
+        }
+
+        {
+            byteBuf.writeBytes(Client.getEndBytes());
+            LOGGER.log(Level.INFO, "End write: {0}", ACTION_TYPE);
+        }
+
+        Client.getNetworkChannel().writeAndFlush(byteBuf);
     }
 }

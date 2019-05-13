@@ -24,23 +24,14 @@ public class CommandFileListResponse extends AbstractResponse {
         this.run();
     }
 
-    protected void run() {
-        if (this.status == 200) {
-            MainController mainController = (MainController) Client.getGui().getMainStage().getUserData();
-            mainController.getServerStorageTableView().getItems().add(this.fileRow);
-        } else {
-            switch (this.message) { // TODO дополнительные ошибки
-                case "SERVER_ERROR":
-                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Список файлов", "Ошибка на стороне сервера, попробуйте позже."));
-                    break;
-                default:
-                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Список файлов", "Неизвестная ошибка, попробуйте позже."));
-            }
-        }
-    }
-
     protected void receiveDataByProtocol() throws Exception {
-        this.readMeta();
+        if (this.byteBuf.isReadable()) {
+            this.readMeta();
+        } else {
+            LOGGER.log(Level.INFO, "Ошибка, мета информация не доступна");
+
+            return;
+        }
 
         if (this.byteBuf.isReadable()) { // check end
             LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
@@ -53,7 +44,7 @@ public class CommandFileListResponse extends AbstractResponse {
         MainController.ServerFileRow fileRow = new MainController.ServerFileRow();
 
         { // read name
-            fileRow.setName(this.readString());
+            fileRow.setName(this.readStringByInt());
         }
 
         { // read size
@@ -76,6 +67,23 @@ public class CommandFileListResponse extends AbstractResponse {
             throw new Exception("End bytes not received");
         } else {
             LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
+        }
+    }
+
+    protected void run() {
+        if (this.status == 200) {
+            Client.getGui().runInThread(gui -> {
+                MainController mainController = (MainController) gui.getMainStage().getUserData();
+                mainController.getServerStorageTableView().getItems().add(this.fileRow);
+            });
+        } else {
+            switch (this.message) { // TODO дополнительные ошибки
+                case "SERVER_ERROR":
+                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Список файлов", "Ошибка на стороне сервера, попробуйте позже."));
+                    break;
+                default:
+                    Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Список файлов", "Неизвестная ошибка, попробуйте позже."));
+            }
         }
     }
 }

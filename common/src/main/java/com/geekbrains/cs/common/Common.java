@@ -6,9 +6,9 @@ import java.util.Date;
 import java.util.logging.*;
 
 public class Common {
-    public static void initLogger(Logger logger) {
+    public static void initLogger(Logger logger, Level level) {
         Handler handler = new ConsoleHandler();
-        handler.setLevel(Level.ALL);
+        handler.setLevel(level);
         handler.setFormatter(new SimpleFormatter() {
             // Create a DateFormat to format the logger timestamp.
             private final DateFormat df = new SimpleDateFormat("dd/MM/yyyy hh:mm:ss.SSS");

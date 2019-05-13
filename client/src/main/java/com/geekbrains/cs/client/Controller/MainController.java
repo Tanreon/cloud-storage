@@ -1,15 +1,18 @@
 package com.geekbrains.cs.client.Controller;
 
 import com.geekbrains.cs.client.Contract.SizeUnit;
+import com.geekbrains.cs.client.Request.CommandDeleteFileRequest;
 import com.geekbrains.cs.client.Request.CommandFileListRequest;
 import com.geekbrains.cs.client.Request.DownloadFileRequest;
 import com.geekbrains.cs.client.Client;
+import com.geekbrains.cs.client.Request.CommandRenameFileRequest;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 
 import java.io.IOException;
@@ -27,6 +30,45 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class MainController implements Initializable {
+    private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
+    @FXML
+    protected TableView<AbstractFileRow> clientStorageTableView;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> clientStorageFileNameColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> clientStorageFileCreatedAtColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> clientStorageFileSizeColumn;
+    @FXML
+    protected TableView<AbstractFileRow> serverStorageTableView;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> serverStorageFileNameColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> serverStorageFileCreatedAtColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> serverStorageFileSizeColumn;
+    @FXML
+    protected Label connectionStatusLabel;
+    @FXML
+    protected HBox currentProgressHBox;
+    @FXML
+    protected Label currentFileNameLabel;
+
+    public TableView<AbstractFileRow> getServerStorageTableView() {
+        return this.serverStorageTableView;
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        this.initTableView();
+
+        Client.getGui().getMainStage().setOnShown(event -> {
+            this.updateConnectionStatusLabel();
+            this.updateClientStorageTableView();
+            this.updateServerStorageTableView();
+        });
+    }
+
     private void initTableView() {
         {
             Callback<TableColumn.CellDataFeatures<AbstractFileRow, String>, ObservableValue<String>> callback = param -> new SimpleStringProperty(param.getValue().getName());
@@ -113,12 +155,27 @@ public class MainController implements Initializable {
                     new Thread(() -> new DownloadFileRequest(tableRow.getItem().getName())).start();
                 });
 
-//                MenuItem deleteMenuItem = new MenuItem("Delete"); // TODO реализовать функционал
-//                deleteMenuItem.setOnAction(event -> {
-//                    System.out.println("delete item " + tableRow.getItem().getName());
-//                });
+                MenuItem renameMenuItem = new MenuItem("Rename");
+                renameMenuItem.setOnAction(event -> {
+                    LOGGER.log(Level.INFO, "RENAME_FILE File command {0}", tableRow.getItem().getName());
+                    if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+                        return;
+                    }
 
-                contextMenu.getItems().addAll(downloadMenuItem);
+                    new Thread(() -> new CommandRenameFileRequest(tableRow.getItem().getName(), "new-file-name")).start(); // TODO 2 arg
+                });
+
+                MenuItem deleteMenuItem = new MenuItem("Delete");
+                deleteMenuItem.setOnAction(event -> {
+                    LOGGER.log(Level.INFO, "DELETE_FILE File command {0}", tableRow.getItem().getName());
+                    if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+                        return;
+                    }
+
+                    new Thread(() -> new CommandDeleteFileRequest(tableRow.getItem().getName())).start();
+                });
+
+                contextMenu.getItems().addAll(downloadMenuItem, renameMenuItem, deleteMenuItem);
 
                 // Set context menu on row, but use a binding to make it only show for non-empty rows:
                 tableRow.contextMenuProperty().bind(Bindings.when(tableRow.emptyProperty()).then((ContextMenu) null).otherwise(contextMenu)); // FIXME все равно вылазит меню на пустом месте при ПКМ
@@ -128,6 +185,26 @@ public class MainController implements Initializable {
                 return tableRow;
             });
         }
+    }
+
+    private void updateConnectionStatusLabel() {
+        new Thread(() -> {
+            while (true) {
+                Client.getGui().runInThread(gui -> {
+                    if (Client.getNetworkChannel().isOpen()) { // TODO переделать определение состояния сокета
+                        this.connectionStatusLabel.setText("подключен");
+                    } else {
+                        this.connectionStatusLabel.setText("не подключен");
+                    }
+                });
+
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     public abstract static class AbstractFileRow {
@@ -166,42 +243,6 @@ public class MainController implements Initializable {
                 this.modifiedAt = Instant.EPOCH;
             }
         }
-    }
-
-    private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
-
-    @FXML
-    public TableView<AbstractFileRow> clientStorageTableView;
-    @FXML
-    public TableColumn<AbstractFileRow, String> clientStorageFileNameColumn;
-    @FXML
-    public TableColumn<AbstractFileRow, String> clientStorageFileCreatedAtColumn;
-    @FXML
-    public TableColumn<AbstractFileRow, String> clientStorageFileSizeColumn;
-    @FXML
-    public TableView<AbstractFileRow> serverStorageTableView;
-    @FXML
-    public TableColumn<AbstractFileRow, String> serverStorageFileNameColumn;
-    @FXML
-    public TableColumn<AbstractFileRow, String> serverStorageFileCreatedAtColumn;
-    @FXML
-    public TableColumn<AbstractFileRow, String> serverStorageFileSizeColumn;
-    @FXML
-    public Label connectionStatusLabel;
-
-    public TableView<AbstractFileRow> getServerStorageTableView() {
-        return this.serverStorageTableView;
-    }
-
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        this.initTableView();
-
-        Client.getGui().getMainStage().setOnShown(event -> {
-            this.updateConnectionStatusLabel();
-            this.updateClientStorageTableView();
-            this.updateServerStorageTableView();
-        });
     }
 
     public static class ServerFileRow extends AbstractFileRow {
@@ -247,25 +288,5 @@ public class MainController implements Initializable {
         }
 
         files.forEach(path -> this.clientStorageTableView.getItems().add(new ClientFileRow(path)));
-    }
-
-    private void updateConnectionStatusLabel() {
-        new Thread(() -> {
-            while (true) {
-                Client.getGui().runInThread(gui -> {
-                    if (Client.getNetworkChannel().isOpen()) { // TODO переделать определение состояния сокета
-                        this.connectionStatusLabel.setText("подключен");
-                    } else {
-                        this.connectionStatusLabel.setText("не подключен");
-                    }
-                });
-
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
     }
 }

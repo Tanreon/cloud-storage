@@ -24,7 +24,13 @@ public class AccountSignInResponse extends AbstractResponse {
     }
 
     protected void receiveDataByProtocol() throws Exception {
-        this.readMeta();
+        if (this.byteBuf.isReadable()) {
+            this.readMeta();
+        } else {
+            LOGGER.log(Level.INFO, "Ошибка, мета информация не доступна");
+
+            return;
+        }
 
         if (this.byteBuf.isReadable()) { // check end
             LOGGER.log(Level.INFO, "Данные корректны, продолжаем чтение...");
@@ -35,7 +41,7 @@ public class AccountSignInResponse extends AbstractResponse {
         }
 
         { // get key
-            this.key = this.readString();
+            this.key = this.readStringByInt();
         }
 
         if (this.byteBuf.isReadable()) { // check end

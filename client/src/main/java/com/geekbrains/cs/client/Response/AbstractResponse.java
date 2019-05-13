@@ -1,12 +1,8 @@
 package com.geekbrains.cs.client.Response;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandlerContext;
+import com.geekbrains.cs.common.Response.BaseAbstractResponse;
 
-public abstract class AbstractResponse {
-    protected ChannelHandlerContext ctx;
-    protected ByteBuf byteBuf;
-
+public abstract class AbstractResponse extends BaseAbstractResponse {
     protected short status;
     protected String message;
 
@@ -27,22 +23,5 @@ public abstract class AbstractResponse {
                 this.message = new String(messageBytes);
             }
         }
-    }
-
-    protected String readString() {
-        int stringLength = this.byteBuf.readInt();
-        byte[] stringBytes = new byte[stringLength];
-
-        this.byteBuf.readBytes(stringBytes);
-
-        return new String(stringBytes);
-    }
-
-    protected byte[] readBytes() {
-        int bytesLength = this.byteBuf.readInt();
-        byte[] bytes = new byte[bytesLength];
-        this.byteBuf.readBytes(bytes);
-
-        return bytes;
     }
 }

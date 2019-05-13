@@ -12,17 +12,17 @@ public class SignUpController {
     public static final String SCENE_TITLE = "Регистрация";
 
     @FXML
-    public TextField loginTextField;
+    protected TextField loginTextField;
     @FXML
-    public TextField emailTextField;
+    protected TextField emailTextField;
     @FXML
-    public TextField passwordTextField;
+    protected TextField passwordTextField;
     @FXML
-    public TextField repeatPasswordTextField;
+    protected TextField repeatPasswordTextField;
     @FXML
-    public Hyperlink signInLink;
+    protected Hyperlink signInLink;
     @FXML
-    public Button signUpButton;
+    protected Button signUpButton;
 
     @FXML
     public void handleSignInLinkOnAction(ActionEvent actionEvent) {

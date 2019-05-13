@@ -4,7 +4,9 @@ import com.geekbrains.cs.common.Contract.OptionType;
 
 public enum CommandOptionType implements OptionType {
     UNKNOWN((byte) -1),
-    FILE_LIST((byte)1);
+    FILE_LIST((byte)1),
+    RENAME_FILE((byte)2),
+    DELETE_FILE((byte)3);
 
     private byte type;
 

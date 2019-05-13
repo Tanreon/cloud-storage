@@ -26,12 +26,12 @@ public class Client extends Application {
     private String host = "localhost";
     private int port = 8189;
 
-    public static Channel getNetworkChannel() {
-        return networkChannel;
+    public static byte[] getEndBytes() { // FIXME убрать отсюда. тут этому не место
+        return new byte[] { 0, -1, 1, -1, 0 };
     }
 
-    public static byte[] getEndBytes() { // FIXME убрать отсюда. тут этому не место
-        return new byte[] { (byte) 0, (byte) -1 };
+    public static Channel getNetworkChannel() {
+        return networkChannel;
     }
 
     public static GUI getGui() {
@@ -49,7 +49,7 @@ public class Client extends Application {
     @Override
     public void init() {
         // init logger
-        Common.initLogger(LOGGER);
+        Common.initLogger(LOGGER, Level.INFO);
 
         // init networking
         this.initNetwork();
@@ -93,7 +93,7 @@ public class Client extends Application {
                     bootstrap.handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel socketChannel) {
-                            socketChannel.pipeline().addLast(new DelimiterBasedFrameDecoder(8196, Unpooled.wrappedBuffer(Client.getEndBytes())));
+                            socketChannel.pipeline().addLast(new DelimiterBasedFrameDecoder(65 * 1024, Unpooled.wrappedBuffer(Client.getEndBytes())));
                             socketChannel.pipeline().addLast(new InClientHandler(), new OutClientHandler());
                         }
                     });
