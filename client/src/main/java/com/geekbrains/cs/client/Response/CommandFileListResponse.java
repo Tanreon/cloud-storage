@@ -12,6 +12,7 @@ public class CommandFileListResponse extends AbstractResponse {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
 
     private MainController.ServerFileRow fileRow;
+    private int filesCount;
 
     public CommandFileListResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
         this.ctx = ctx;
@@ -39,6 +40,10 @@ public class CommandFileListResponse extends AbstractResponse {
             LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
 
             return;
+        }
+
+        {
+            this.filesCount = this.byteBuf.readInt();
         }
 
         MainController.ServerFileRow fileRow = new MainController.ServerFileRow();
@@ -74,6 +79,11 @@ public class CommandFileListResponse extends AbstractResponse {
         if (this.status == 200) {
             Client.getGui().runInThread(gui -> {
                 MainController mainController = (MainController) gui.getMainStage().getUserData();
+
+                if (this.filesCount == mainController.getServerStorageTableView().getItems().size()) {
+                    mainController.getServerStorageTableView().getItems().clear();
+                }
+
                 mainController.getServerStorageTableView().getItems().add(this.fileRow);
             });
         } else {

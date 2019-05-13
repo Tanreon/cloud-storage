@@ -30,6 +30,7 @@ public class CommandFileListAction extends AbstractAction {
     ////////////////////
 
     private Stream<Path> fileStream;
+    private int filesCount;
 
     public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
         this.ctx = ctx;
@@ -74,6 +75,7 @@ public class CommandFileListAction extends AbstractAction {
 
         try {
             this.fileStream = Files.list(storage);
+            this.filesCount = (int) Files.list(storage).count();
         } catch (NoSuchFileException e) {
             LOGGER.log(Level.WARNING, "{0} -> Path not found err", ctx.channel().id());
 
@@ -115,12 +117,18 @@ public class CommandFileListAction extends AbstractAction {
 
             ByteBuf byteBuf = Unpooled.directBuffer();
 
-            byteBuf.writeInt(nameBytes.length);
-            byteBuf.writeBytes(nameBytes);
-            byteBuf.writeLong(size);
-            byteBuf.writeLong(createdAt);
-            byteBuf.writeLong(modifiedAt);
-            byteBuf.writeBytes(Server.getEndBytes());
+            { // write files count
+                byteBuf.writeInt(this.filesCount);
+            }
+
+            { // write data
+                byteBuf.writeInt(nameBytes.length);
+                byteBuf.writeBytes(nameBytes);
+                byteBuf.writeLong(size);
+                byteBuf.writeLong(createdAt);
+                byteBuf.writeLong(modifiedAt);
+                byteBuf.writeBytes(Server.getEndBytes());
+            }
 
             this.ctx.writeAndFlush(byteBuf);
         });

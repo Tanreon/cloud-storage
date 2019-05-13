@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -97,7 +98,16 @@ public class DownloadFileResponse extends AbstractResponse {
                 }
             }
 
-            Client.getGui().runInThread(gui -> ((MainController) gui.getMainStage().getUserData()).updateClientStorageTableView(this.fileDataPart == this.fileDataBlocksCount));
+            double fileFinishPercentage = (double) this.fileDataPart / this.fileDataBlocksCount * 100;
+
+            Client.getGui().runInThread(gui -> {
+                MainController mainController = (MainController) gui.getMainStage().getUserData();
+                mainController.updateClientStorageTableView(this.fileDataPart == this.fileDataBlocksCount);
+                mainController.getClientStorageTableView().getItems().stream()
+                        .filter(item -> item.getName().equals(this.fileName))
+                        .findFirst()
+                        .ifPresent(item -> item.setFinishPercentage((int) Math.round(fileFinishPercentage)));
+            });
         } else {
             switch (this.message) { // TODO дополнительные ошибки
                 case "FILE_NOT_FOUND":

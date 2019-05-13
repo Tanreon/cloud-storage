@@ -4,12 +4,13 @@ import com.geekbrains.cs.client.Contract.SizeUnit;
 import com.geekbrains.cs.client.Request.*;
 import com.geekbrains.cs.client.Client;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 
 import java.io.IOException;
@@ -28,8 +29,42 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class MainController implements Initializable {
+    private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
+
+    @FXML
+    protected TableView<AbstractFileRow> clientStorageTableView;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> clientStorageFileNameColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> clientStorageFileCreatedAtColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> clientStorageFileSizeColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> clientStorageFileStatusColumn;
+    @FXML
+    protected TableView<AbstractFileRow> serverStorageTableView;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> serverStorageFileNameColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> serverStorageFileCreatedAtColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> serverStorageFileSizeColumn;
+    @FXML
+    protected TableColumn<AbstractFileRow, String> serverStorageFileStatusColumn;
+
+    @FXML
+    protected Label connectionStatusLabel;
+
     protected Instant clientTableViewLastUpdate;
     protected Instant serverTableViewLastUpdate;
+
+    public TableView<AbstractFileRow> getClientStorageTableView() {
+        return this.clientStorageTableView;
+    }
+
+    public TableView<AbstractFileRow> getServerStorageTableView() {
+        return this.serverStorageTableView;
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -42,27 +77,65 @@ public class MainController implements Initializable {
         });
     }
 
-    private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
+    public void updateClientStorageTableView(boolean force) {
+        if (force || this.canUpdate(this.clientTableViewLastUpdate)) { // фиксим ненужные обновления 23838 раз в секунду
+            this.clientTableViewLastUpdate = Instant.now();
+        } else {
+            return;
+        }
 
-    @FXML
-    protected TableView<AbstractFileRow> clientStorageTableView;
-    @FXML
-    protected TableColumn<AbstractFileRow, String> clientStorageFileNameColumn;
-    @FXML
-    protected TableColumn<AbstractFileRow, String> clientStorageFileCreatedAtColumn;
-    @FXML
-    protected TableColumn<AbstractFileRow, String> clientStorageFileSizeColumn;
-    @FXML
-    protected TableView<AbstractFileRow> serverStorageTableView;
-    @FXML
-    protected TableColumn<AbstractFileRow, String> serverStorageFileNameColumn;
-    @FXML
-    protected TableColumn<AbstractFileRow, String> serverStorageFileCreatedAtColumn;
-    @FXML
-    protected TableColumn<AbstractFileRow, String> serverStorageFileSizeColumn;
+        { // clear
+            this.clientStorageTableView.getItems().clear();
+        }
 
-    @FXML
-    protected Label connectionStatusLabel;
+        { // update
+            Path storage = Paths.get(Client.STORAGE_PATH);
+
+            Stream<Path> files;
+
+            try {
+                files = Files.list(storage);
+            } catch (NoSuchFileException e) {
+                LOGGER.log(Level.WARNING, "ERROR: Local path not found");
+                return;
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "ERROR: IOException when reading client dir");
+                e.printStackTrace();
+                return;
+            }
+
+            files.forEach(path -> {
+                ClientFileRow clientFileRow = new ClientFileRow(path);
+                clientFileRow.setFinishPercentage(100); // FIXME сохранять предыдущее значение в конфиг либо в filename.conf.tmp
+
+                this.clientStorageTableView.getItems().add(clientFileRow);
+            });
+        }
+    }
+
+    public void updateServerStorageTableView(boolean force) {
+        if (force || this.canUpdate(this.serverTableViewLastUpdate)) { // фиксим ненужные обновления 23838 раз в секунду
+            this.serverTableViewLastUpdate = Instant.now();
+        } else {
+            return;
+        }
+
+        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
+            return;
+        }
+
+        { // update
+            new CommandFileListRequest();
+        }
+    }
+
+    /*
+    * FIXME глюки при скачивании большого файла
+    * */
+    public void onUpdateFileListButtonAction(ActionEvent actionEvent) {
+        this.updateClientStorageTableView(true);
+        this.updateServerStorageTableView(true);
+    }
 
     private void initTableView() {
         {
@@ -136,19 +209,36 @@ public class MainController implements Initializable {
         }
 
         {
+            Callback<TableColumn.CellDataFeatures<AbstractFileRow, String>, ObservableValue<String>> callback = param -> {
+                String status;
+
+                if (param.getValue().getFinishPercentage() < 100) {
+                    status = String.format("%d%%", param.getValue().getFinishPercentage());
+                } else {
+                    status = "OK";
+                }
+
+                return new SimpleStringProperty(status);
+            };
+
+            this.clientStorageFileStatusColumn.setCellValueFactory(callback);
+            this.serverStorageFileStatusColumn.setCellValueFactory(callback);
+        }
+
+        {
             this.clientStorageTableView.setRowFactory(tableView -> {
                 final TableRow<AbstractFileRow> tableRow = new TableRow<>();
                 final ContextMenu contextMenu = new ContextMenu();
 
                 MenuItem downloadMenuItem = new MenuItem("Upload");
 
-                downloadMenuItem.setOnAction(event -> this.onClientUploadClick(tableRow));
+                downloadMenuItem.setOnAction(event -> this.onClientTableRowUploadAction(tableRow));
 
                 MenuItem renameMenuItem = new MenuItem("Rename");
-                renameMenuItem.setOnAction(event -> this.onClientRenameClick(tableRow));
+                renameMenuItem.setOnAction(event -> this.onClientTableRowRenameAction(tableRow));
 
                 MenuItem deleteMenuItem = new MenuItem("Delete");
-                deleteMenuItem.setOnAction(event -> this.onClientDeleteClick(tableRow));
+                deleteMenuItem.setOnAction(event -> this.onClientTableRowDeleteAction(tableRow));
 
                 contextMenu.getItems().addAll(downloadMenuItem, renameMenuItem, deleteMenuItem);
 
@@ -165,13 +255,13 @@ public class MainController implements Initializable {
                 final ContextMenu contextMenu = new ContextMenu();
 
                 MenuItem downloadMenuItem = new MenuItem("Download");
-                downloadMenuItem.setOnAction(event -> this.onServerDownloadClick(tableRow));
+                downloadMenuItem.setOnAction(event -> this.onServerTableRowDownloadAction(tableRow));
 
                 MenuItem renameMenuItem = new MenuItem("Rename");
-                renameMenuItem.setOnAction(event -> this.onServerRenameClick(tableRow));
+                renameMenuItem.setOnAction(event -> this.onServerTableRowRenameAction(tableRow));
 
                 MenuItem deleteMenuItem = new MenuItem("Delete");
-                deleteMenuItem.setOnAction(event -> this.onServerDeleteClick(tableRow));
+                deleteMenuItem.setOnAction(event -> this.onServerTableRowDeleteAction(tableRow));
 
                 contextMenu.getItems().addAll(downloadMenuItem, renameMenuItem, deleteMenuItem);
 
@@ -185,7 +275,7 @@ public class MainController implements Initializable {
         }
     }
 
-    public void updateConnectionStatusLabel() {
+    private void updateConnectionStatusLabel() {
         new Thread(() -> {
             while (true) {
                 Client.getGui().runInThread(gui -> {
@@ -205,62 +295,7 @@ public class MainController implements Initializable {
         }).start();
     }
 
-    public TableView<AbstractFileRow> getServerStorageTableView() {
-        return this.serverStorageTableView;
-    }
-
-    public void updateClientStorageTableView(boolean force) {
-        if (force || this.canUpdate(this.clientTableViewLastUpdate)) { // фиксим ненужные обновления 23838 раз в секунду
-            this.clientTableViewLastUpdate = Instant.now();
-        } else {
-            return;
-        }
-
-        { // clear
-            this.clientStorageTableView.getItems().clear();
-        }
-
-        { // update
-            Path storage = Paths.get(Client.STORAGE_PATH);
-
-            Stream<Path> files;
-
-            try {
-                files = Files.list(storage);
-            } catch (NoSuchFileException e) {
-                LOGGER.log(Level.WARNING, "ERROR: Local path not found");
-                return;
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "ERROR: IOException when reading client dir");
-                e.printStackTrace();
-                return;
-            }
-
-            files.forEach(path -> this.clientStorageTableView.getItems().add(new ClientFileRow(path)));
-        }
-    }
-
-    public void updateServerStorageTableView(boolean force) {
-        if (force || this.canUpdate(this.serverTableViewLastUpdate)) { // фиксим ненужные обновления 23838 раз в секунду
-            this.serverTableViewLastUpdate = Instant.now();
-        } else {
-            return;
-        }
-
-        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
-            return;
-        }
-
-        { // clear
-            this.serverStorageTableView.getItems().clear();
-        }
-
-        { // update
-            new CommandFileListRequest();
-        }
-    }
-
-    private void onClientUploadClick(TableRow<AbstractFileRow> tableRow) {
+    private void onClientTableRowUploadAction(TableRow<AbstractFileRow> tableRow) {
         LOGGER.log(Level.INFO, "UPLOAD_CLIENT File command {0}", tableRow.getItem().getName());
         if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
@@ -269,7 +304,7 @@ public class MainController implements Initializable {
         new UploadFileRequest(tableRow.getItem().getName());
     }
 
-    private void onClientRenameClick(TableRow<AbstractFileRow> tableRow) {
+    private void onClientTableRowRenameAction(TableRow<AbstractFileRow> tableRow) {
         LOGGER.log(Level.INFO, "RENAME_CLIENT File command {0}", tableRow.getItem().getName());
         if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
@@ -293,7 +328,7 @@ public class MainController implements Initializable {
         this.updateClientStorageTableView(true);
     }
 
-    private void onClientDeleteClick(TableRow<AbstractFileRow> tableRow) {
+    private void onClientTableRowDeleteAction(TableRow<AbstractFileRow> tableRow) {
         LOGGER.log(Level.INFO, "DELETE_CLIENT File command {0}", tableRow.getItem().getName());
         if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
@@ -316,7 +351,7 @@ public class MainController implements Initializable {
         this.updateClientStorageTableView(true);
     }
 
-    private void onServerDownloadClick(TableRow<AbstractFileRow> tableRow) {
+    private void onServerTableRowDownloadAction(TableRow<AbstractFileRow> tableRow) {
         LOGGER.log(Level.INFO, "DOWNLOAD_SERVER File command {0}", tableRow.getItem().getName());
         if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
@@ -325,7 +360,7 @@ public class MainController implements Initializable {
         new DownloadFileRequest(tableRow.getItem().getName());
     }
 
-    private void onServerRenameClick(TableRow<AbstractFileRow> tableRow) {
+    private void onServerTableRowRenameAction(TableRow<AbstractFileRow> tableRow) {
         LOGGER.log(Level.INFO, "RENAME_SERVER File command {0}", tableRow.getItem().getName());
         if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
@@ -334,7 +369,7 @@ public class MainController implements Initializable {
         new CommandRenameFileRequest(tableRow.getItem().getName(), "new-file-name"); // TODO 2 arg
     }
 
-    private void onServerDeleteClick(TableRow<AbstractFileRow> tableRow) {
+    private void onServerTableRowDeleteAction(TableRow<AbstractFileRow> tableRow) {
         LOGGER.log(Level.INFO, "DELETE_SERVER File command {0}", tableRow.getItem().getName());
         if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
             return;
@@ -356,6 +391,15 @@ public class MainController implements Initializable {
         protected long size;
         protected Instant modifiedAt;
         protected Instant createdAt;
+        protected int finishPercentage;
+
+        public int getFinishPercentage() {
+            return finishPercentage;
+        }
+
+        public void setFinishPercentage(int percentage) {
+            this.finishPercentage = percentage;
+        }
 
         public String getName() {
             return name;
