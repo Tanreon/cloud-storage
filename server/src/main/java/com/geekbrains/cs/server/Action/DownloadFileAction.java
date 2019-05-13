@@ -1,6 +1,7 @@
 package com.geekbrains.cs.server.Action;
 
 import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.common.Common;
 import com.geekbrains.cs.common.Contract.OptionType;
 import com.geekbrains.cs.common.OptionType.DownloadOptionType;
 import com.geekbrains.cs.server.Response;
@@ -21,8 +22,6 @@ public class DownloadFileAction extends AbstractAction {
 
     private final ActionType ACTION_TYPE = ActionType.DOWNLOAD;
     private final OptionType OPTION_TYPE = DownloadOptionType.FILE;
-
-    private final long BUFFER_LENGTH = 60 * 1024;
 
     ////////////////////
     private String login = "test";
@@ -99,7 +98,7 @@ public class DownloadFileAction extends AbstractAction {
     protected boolean sendDataByProtocol() throws IOException {
         LOGGER.log(Level.INFO, "{0} -> Client success start download file part: {1}", new Object[] { this.ctx.channel().id(), this.fileName });
 
-        long filePartsCount = (long) Math.ceil((double) this.randomAccessFile.length() / BUFFER_LENGTH);
+        long filePartsCount = (long) Math.ceil((double) this.randomAccessFile.length() / Common.BUFFER_LENGTH);
 
         for (int filePart = 1; filePart <= filePartsCount; filePart++) {
             LOGGER.log(Level.INFO, "{0} -> Sending file part, {1} of file: {2}", new Object[]{this.ctx.channel().id(), filePart, this.fileName});
@@ -125,13 +124,13 @@ public class DownloadFileAction extends AbstractAction {
 
                 long availableBytes;
 
-                if (BUFFER_LENGTH > this.randomAccessFile.length()) {
+                if (Common.BUFFER_LENGTH > this.randomAccessFile.length()) {
                     availableBytes = this.randomAccessFile.length();
                 } else {
-                    if ((filePart * BUFFER_LENGTH) > this.randomAccessFile.length()) {
-                        availableBytes = this.randomAccessFile.length() - ((filePart - 1) * BUFFER_LENGTH);
+                    if ((filePart * Common.BUFFER_LENGTH) > this.randomAccessFile.length()) {
+                        availableBytes = this.randomAccessFile.length() - ((filePart - 1) * Common.BUFFER_LENGTH);
                     } else {
-                        availableBytes = BUFFER_LENGTH;
+                        availableBytes = Common.BUFFER_LENGTH;
                     }
                 }
 
@@ -142,7 +141,7 @@ public class DownloadFileAction extends AbstractAction {
             }
 
             {
-                byteBuf.writeBytes(Server.getEndBytes());
+                byteBuf.writeBytes(Common.END_BYTES);
             }
 
             this.ctx.writeAndFlush(byteBuf);

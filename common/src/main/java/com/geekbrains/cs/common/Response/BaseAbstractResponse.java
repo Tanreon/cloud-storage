@@ -1,16 +1,18 @@
 package com.geekbrains.cs.common.Response;
 
+import com.geekbrains.cs.common.BaseAbstractNetworkInteraction;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
-public abstract class BaseAbstractResponse {
+public abstract class BaseAbstractResponse extends BaseAbstractNetworkInteraction {
     protected ChannelHandlerContext ctx;
     protected ByteBuf byteBuf;
+
+    protected abstract boolean receiveDataByProtocol() throws Exception;
 
     protected String readStringByInt() {
         return this.readString(this.byteBuf.readInt());
     }
-
     protected String readStringByShort() {
         return this.readString(this.byteBuf.readShort());
     }

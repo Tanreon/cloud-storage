@@ -27,10 +27,6 @@ public class Client extends Application {
     private String host = "localhost";
     private int port = 8189;
 
-    public static byte[] getEndBytes() { // FIXME убрать отсюда. тут этому не место
-        return new byte[] { 0, -1, 1, -1, 0 };
-    }
-
     public static Channel getNetworkChannel() {
         return networkChannel;
     }
@@ -94,7 +90,7 @@ public class Client extends Application {
                     bootstrap.handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel socketChannel) {
-                            socketChannel.pipeline().addLast(new DelimiterBasedFrameDecoder(65 * 1024, Unpooled.wrappedBuffer(Client.getEndBytes())));
+                            socketChannel.pipeline().addLast(new DelimiterBasedFrameDecoder(Common.MAX_BUFFER_LENGTH, Unpooled.wrappedBuffer(Common.END_BYTES)));
                             socketChannel.pipeline().addLast(new InClientHandler(), new OutClientHandler());
                         }
                     });

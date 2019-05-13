@@ -6,9 +6,6 @@ public abstract class AbstractResponse extends BaseAbstractResponse {
     protected short status;
     protected String message;
 
-    protected abstract void run() throws Exception;
-    protected abstract void receiveDataByProtocol() throws Exception;
-
     protected void readMeta() {
         { // read status
             this.status = this.byteBuf.readShort();

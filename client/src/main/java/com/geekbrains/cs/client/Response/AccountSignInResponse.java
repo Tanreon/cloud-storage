@@ -4,6 +4,7 @@ import com.geekbrains.cs.client.Client;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,24 +13,29 @@ public class AccountSignInResponse extends AbstractResponse {
 
     private String key;
 
-    public AccountSignInResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
+    public AccountSignInResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) throws IOException {
         this.ctx = ctx;
         this.byteBuf = byteBuf;
 
-        // Run protocol request processing
-        this.receiveDataByProtocol();
+        // Run protocol response processing
+        if (! this.receiveDataByProtocol()) {
+            return;
+        }
 
-        // Run request processing
-        this.run();
+        // Run response processing
+        if (! this.run()) {
+            return;
+        }
     }
 
-    protected void receiveDataByProtocol() throws Exception {
+    @Override
+    protected boolean receiveDataByProtocol() throws IOException {
         if (this.byteBuf.isReadable()) {
             this.readMeta();
         } else {
             LOGGER.log(Level.INFO, "Ошибка, мета информация не доступна");
 
-            return;
+            return false;
         }
 
         if (this.byteBuf.isReadable()) { // check end
@@ -37,7 +43,7 @@ public class AccountSignInResponse extends AbstractResponse {
         } else {
             LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
 
-            return;
+            return true;
         }
 
         { // get key
@@ -47,13 +53,16 @@ public class AccountSignInResponse extends AbstractResponse {
         if (this.byteBuf.isReadable()) { // check end
             LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
 
-            throw new Exception("End bytes not received");
+            throw new IOException("End bytes not received");
         } else {
             LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
         }
+
+        return true;
     }
 
-    protected void run() {
+    @Override
+    protected boolean run() {
         if (this.status == 200) {
             Client.getGui().runInThread(gui -> {
                 gui.getMainStage().show();
@@ -75,5 +84,7 @@ public class AccountSignInResponse extends AbstractResponse {
                     Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Вход", "Неизвестная ошибка, попробуйте позже."));
             }
         }
+
+        return true;
     }
 }

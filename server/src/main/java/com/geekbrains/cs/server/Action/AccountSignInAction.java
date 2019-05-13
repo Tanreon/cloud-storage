@@ -1,6 +1,7 @@
 package com.geekbrains.cs.server.Action;
 
 import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.common.Common;
 import com.geekbrains.cs.common.Contract.OptionType;
 import com.geekbrains.cs.common.OptionType.AccountOptionType;
 import com.geekbrains.cs.server.Response;
@@ -139,7 +140,7 @@ public class AccountSignInAction extends AbstractAction {
         }
 
         {
-            byteBuf.writeBytes(Server.getEndBytes());
+            byteBuf.writeBytes(Common.END_BYTES);
         }
 
         this.ctx.writeAndFlush(byteBuf);

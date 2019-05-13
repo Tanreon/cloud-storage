@@ -12,10 +12,6 @@ import java.util.logging.Logger;
 public abstract class AbstractAction extends BaseAbstractResponse {
     protected static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-    protected abstract boolean receiveDataByProtocol() throws Exception;
-
-    protected abstract boolean run() throws Exception;
-
     protected abstract boolean sendDataByProtocol() throws Exception;
 
     protected void rejectEmpty(ActionType actionType, OptionType optionType) {

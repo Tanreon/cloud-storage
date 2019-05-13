@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 public class MainController implements Initializable {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
+    private static final int MIN_UPDATE_INTERVAL = 3;
 
     @FXML
     protected TableView<AbstractFileRow> clientStorageTableView;
@@ -105,7 +106,7 @@ public class MainController implements Initializable {
 
             files.forEach(path -> {
                 ClientFileRow clientFileRow = new ClientFileRow(path);
-                clientFileRow.setFinishPercentage(100); // FIXME сохранять предыдущее значение в конфиг либо в filename.conf.tmp
+                clientFileRow.setAvailability(100); // FIXME сохранять предыдущее значение в конфиг либо в filename.conf.tmp
 
                 this.clientStorageTableView.getItems().add(clientFileRow);
             });
@@ -211,8 +212,8 @@ public class MainController implements Initializable {
             Callback<TableColumn.CellDataFeatures<AbstractFileRow, String>, ObservableValue<String>> callback = param -> {
                 String status;
 
-                if (param.getValue().getFinishPercentage() < 100) {
-                    status = String.format("%d%%", param.getValue().getFinishPercentage());
+                if (param.getValue().getAvailability() < 100) {
+                    status = String.format("%d%%", param.getValue().getAvailability());
                 } else {
                     status = "OK";
                 }
@@ -300,7 +301,11 @@ public class MainController implements Initializable {
             return;
         }
 
-        new UploadFileRequest(tableRow.getItem().getName());
+        try {
+            new UploadFileRequest(tableRow.getItem().getName());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void onClientTableRowRenameAction(TableRow<AbstractFileRow> tableRow) {
@@ -378,7 +383,7 @@ public class MainController implements Initializable {
     }
 
     private boolean canUpdate(Instant lastUpdate) {
-        if (lastUpdate != null && Instant.now().minus(5, ChronoUnit.SECONDS).compareTo(lastUpdate) < 0) {
+        if (lastUpdate != null && Instant.now().minus(MIN_UPDATE_INTERVAL, ChronoUnit.SECONDS).compareTo(lastUpdate) < 0) {
             return false;
         }
 
@@ -390,14 +395,14 @@ public class MainController implements Initializable {
         protected long size;
         protected Instant modifiedAt;
         protected Instant createdAt;
-        protected int finishPercentage;
+        protected int availability;
 
-        public int getFinishPercentage() {
-            return finishPercentage;
+        public int getAvailability() {
+            return availability;
         }
 
-        public void setFinishPercentage(int percentage) {
-            this.finishPercentage = percentage;
+        public void setAvailability(int availability) {
+            this.availability = availability;
         }
 
         public String getName() {

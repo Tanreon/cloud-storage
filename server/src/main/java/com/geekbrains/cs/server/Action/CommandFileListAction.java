@@ -1,6 +1,7 @@
 package com.geekbrains.cs.server.Action;
 
 import com.geekbrains.cs.common.ActionType;
+import com.geekbrains.cs.common.Common;
 import com.geekbrains.cs.common.Contract.OptionType;
 import com.geekbrains.cs.common.OptionType.CommandOptionType;
 import com.geekbrains.cs.server.Response;
@@ -127,7 +128,7 @@ public class CommandFileListAction extends AbstractAction {
                 byteBuf.writeLong(size);
                 byteBuf.writeLong(createdAt);
                 byteBuf.writeLong(modifiedAt);
-                byteBuf.writeBytes(Server.getEndBytes());
+                byteBuf.writeBytes(Common.END_BYTES);
             }
 
             this.ctx.writeAndFlush(byteBuf);

@@ -1,5 +1,6 @@
 package com.geekbrains.cs.server.Handler;
 
+import com.geekbrains.cs.common.Common;
 import com.geekbrains.cs.server.Response;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
@@ -39,7 +40,7 @@ public class OutServerHandler extends ChannelOutboundHandlerAdapter {
         }
 
         if (response.last()) {
-            byteBuf.writeBytes(Server.getEndBytes());
+            byteBuf.writeBytes(Common.END_BYTES);
         }
 
         return Unpooled.wrappedBuffer(byteBuf);

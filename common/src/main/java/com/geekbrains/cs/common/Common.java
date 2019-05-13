@@ -6,6 +6,10 @@ import java.util.Date;
 import java.util.logging.*;
 
 public class Common {
+    public static final byte[] END_BYTES = { 0, -1, 1, -1, 0 };
+    public static final int MAX_BUFFER_LENGTH = 64 * 1024;
+    public static final int BUFFER_LENGTH = 60 * 1024;
+
     public static void initLogger(Logger logger, Level level) {
         Handler handler = new ConsoleHandler();
         handler.setLevel(level);

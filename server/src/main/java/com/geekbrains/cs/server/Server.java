@@ -21,10 +21,6 @@ public class Server {
 
     private int port;
 
-    public static byte[] getEndBytes() { // FIXME убрать отсюда. тут этому не место
-        return new byte[] { 0, -1, 1, -1, 0 };
-    }
-
     public Server(int port) {
         this.port = port;
     }
@@ -54,7 +50,7 @@ public class Server {
             bootstrap.childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel channel) {
-                    channel.pipeline().addLast(new DelimiterBasedFrameDecoder(65 * 1024, Unpooled.wrappedBuffer(Server.getEndBytes())));
+                    channel.pipeline().addLast(new DelimiterBasedFrameDecoder(Common.MAX_BUFFER_LENGTH, Unpooled.wrappedBuffer(Common.END_BYTES)));
                     channel.pipeline().addLast(new OutServerHandler(), new InServerHandler());
                 }
             });

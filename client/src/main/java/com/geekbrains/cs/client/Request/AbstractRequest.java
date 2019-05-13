@@ -1,5 +1,7 @@
 package com.geekbrains.cs.client.Request;
 
-abstract public class AbstractRequest {
-    abstract protected void sendDataByProtocol();
+import com.geekbrains.cs.common.BaseAbstractNetworkInteraction;
+
+abstract public class AbstractRequest extends BaseAbstractNetworkInteraction {
+    protected abstract boolean sendDataByProtocol() throws Exception;
 }

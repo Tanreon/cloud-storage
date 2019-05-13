@@ -2,6 +2,7 @@ package com.geekbrains.cs.client.Response;
 
 import com.geekbrains.cs.client.Client;
 import com.geekbrains.cs.client.Controller.MainController;
+import com.geekbrains.cs.common.Common;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -17,31 +18,34 @@ public class DownloadFileResponse extends AbstractResponse {
     private static final Logger LOGGER = Logger.getLogger(Client.class.getName());
     private static final String STORAGE_PATH = "client_storage";
 
-    private final long BUFFER_LENGTH = 60 * 1024;
-
     private String fileName;
     private long fileDataBlocksCount;
     private int fileDataPart;
     private byte[] fileDataBytes;
 
-    public DownloadFileResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
+    public DownloadFileResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) throws IOException, InterruptedException {
         this.ctx = ctx;
         this.byteBuf = byteBuf;
 
-        // Run protocol request processing
-        this.receiveDataByProtocol();
+        // Run protocol response processing
+        if (! this.receiveDataByProtocol()) {
+            return;
+        }
 
-        // Run request processing
-        this.run();
+        // Run response processing
+        if (! this.run()) {
+            return;
+        }
     }
 
-    protected void receiveDataByProtocol() throws Exception {
+    @Override
+    protected boolean receiveDataByProtocol() throws IOException {
         if (this.byteBuf.isReadable()) {
             this.readMeta();
         } else {
             LOGGER.log(Level.INFO, "Ошибка, мета информация не доступна");
 
-            return;
+            return false;
         }
 
         if (this.byteBuf.isReadable()) { // check end
@@ -49,7 +53,7 @@ public class DownloadFileResponse extends AbstractResponse {
         } else {
             LOGGER.log(Level.INFO, "Ошибка, нет доступных данных для чтения подробнее в сообщении");
 
-            return;
+            return true;
         }
 
         { // get filename
@@ -71,13 +75,16 @@ public class DownloadFileResponse extends AbstractResponse {
         if (this.byteBuf.isReadable()) { // check end
             LOGGER.log(Level.INFO, "Ошибка, не получен завершающий байт");
 
-            throw new Exception("End bytes not received");
+            throw new IOException("End bytes not received");
         } else {
             LOGGER.log(Level.INFO, "Данные корректны, завершаем чтение");
         }
+
+        return true;
     }
 
-    protected void run() throws IOException, InterruptedException {
+    @Override
+    protected boolean run() throws IOException, InterruptedException {
         if (this.status == 200) {
             LOGGER.log(Level.INFO, "Запись части файла: filename {0}, part {1}", new Object[]{this.fileName, this.fileDataPart});
             File file = Paths.get(STORAGE_PATH, this.fileName).toFile();
@@ -88,7 +95,7 @@ public class DownloadFileResponse extends AbstractResponse {
 
             while (true) {
                 try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
-                    randomAccessFile.seek((this.fileDataPart - 1) * BUFFER_LENGTH);
+                    randomAccessFile.seek((this.fileDataPart - 1) * Common.BUFFER_LENGTH);
                     randomAccessFile.write(this.fileDataBytes);
 
                     break;
@@ -97,7 +104,7 @@ public class DownloadFileResponse extends AbstractResponse {
                 }
             }
 
-            double fileFinishPercentage = (double) this.fileDataPart / this.fileDataBlocksCount * 100;
+            double fileAvailability = (double) this.fileDataPart / this.fileDataBlocksCount * 100;
 
             Client.getGui().runInThread(gui -> {
                 MainController mainController = (MainController) gui.getMainStage().getUserData();
@@ -105,7 +112,7 @@ public class DownloadFileResponse extends AbstractResponse {
                 mainController.getClientStorageTableView().getItems().stream()
                         .filter(item -> item.getName().equals(this.fileName))
                         .findFirst()
-                        .ifPresent(item -> item.setFinishPercentage((int) Math.round(fileFinishPercentage)));
+                        .ifPresent(item -> item.setAvailability((int) Math.round(fileAvailability)));
             });
         } else {
             switch (this.message) { // TODO дополнительные ошибки
@@ -116,5 +123,7 @@ public class DownloadFileResponse extends AbstractResponse {
                     Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Скачивание", "Неизвестная ошибка, попробуйте позже."));
             }
         }
+
+        return true;
     }
 }
