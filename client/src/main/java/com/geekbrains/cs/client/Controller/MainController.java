@@ -4,7 +4,6 @@ import com.geekbrains.cs.client.Contract.SizeUnit;
 import com.geekbrains.cs.client.Request.*;
 import com.geekbrains.cs.client.Client;
 import javafx.beans.binding.Bindings;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
