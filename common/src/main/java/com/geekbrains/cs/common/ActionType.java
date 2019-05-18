@@ -1,5 +1,6 @@
 package com.geekbrains.cs.common;
 
+
 public enum ActionType {
     UNKNOWN((byte) -1),
     ACCOUNT((byte)10),

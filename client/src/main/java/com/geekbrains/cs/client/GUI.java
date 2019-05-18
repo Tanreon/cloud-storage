@@ -1,8 +1,8 @@
 package com.geekbrains.cs.client;
 
-import com.geekbrains.cs.client.Contract.RunnableGUI;
-import com.geekbrains.cs.client.Controller.SignInController;
-import com.geekbrains.cs.client.Controller.SignUpController;
+import com.geekbrains.cs.client.Contracts.RunnableGUI;
+import com.geekbrains.cs.client.Controllers.SignInController;
+import com.geekbrains.cs.client.Controllers.SignUpController;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;

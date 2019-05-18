@@ -1,8 +1,8 @@
 package com.geekbrains.cs.server;
 
 import com.geekbrains.cs.common.Common;
-import com.geekbrains.cs.server.Handler.InServerHandler;
-import com.geekbrains.cs.server.Handler.OutServerHandler;
+import com.geekbrains.cs.server.Handlers.InHandler;
+import com.geekbrains.cs.server.Handlers.OutHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -27,7 +27,7 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
         // init methods before start server
-        Common.initLogger(LOGGER, Level.INFO);
+        Common.initLogger(LOGGER, Level.WARNING);
 
         // start server
         new Server(8189).run();
@@ -51,7 +51,7 @@ public class Server {
                 @Override
                 protected void initChannel(Channel channel) {
                     channel.pipeline().addLast(new DelimiterBasedFrameDecoder(Common.MAX_BUFFER_LENGTH, Unpooled.wrappedBuffer(Common.END_BYTES)));
-                    channel.pipeline().addLast(new OutServerHandler(), new InServerHandler());
+                    channel.pipeline().addLast(new OutHandler(), new InHandler());
                 }
             });
 
