@@ -1,8 +1,8 @@
 package com.geekbrains.cs.client;
 
 import com.geekbrains.cs.common.Common;
-import com.geekbrains.cs.client.Handler.InClientHandler;
-import com.geekbrains.cs.client.Handler.OutClientHandler;
+import com.geekbrains.cs.client.Handlers.InHandler;
+import com.geekbrains.cs.client.Handlers.OutHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -46,7 +46,7 @@ public class Client extends Application {
     @Override
     public void init() {
         // init logger
-        Common.initLogger(LOGGER, Level.INFO);
+        Common.initLogger(LOGGER, Level.WARNING);
 
         // init networking
         this.initNetwork();
@@ -80,7 +80,7 @@ public class Client extends Application {
     private void initNetwork() {
         Thread thread = new Thread(() -> {
             while (true) {
-                EventLoopGroup workerGroup = new NioEventLoopGroup();
+                EventLoopGroup workerGroup = new NioEventLoopGroup(4);
 
                 try {
                     Bootstrap bootstrap = new Bootstrap(); // (1)
@@ -91,7 +91,7 @@ public class Client extends Application {
                         @Override
                         public void initChannel(SocketChannel socketChannel) {
                             socketChannel.pipeline().addLast(new DelimiterBasedFrameDecoder(Common.MAX_BUFFER_LENGTH, Unpooled.wrappedBuffer(Common.END_BYTES)));
-                            socketChannel.pipeline().addLast(new InClientHandler(), new OutClientHandler());
+                            socketChannel.pipeline().addLast(new OutHandler(), new InHandler());
                         }
                     });
 
