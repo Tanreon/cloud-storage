@@ -36,7 +36,7 @@ public class CommandFileListAction extends AbstractAction {
 
     public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
 
         try {
             // Run protocol request processing
@@ -47,13 +47,13 @@ public class CommandFileListAction extends AbstractAction {
             this.sendDataByProtocol();
         } catch (IndexOutOfBoundsException ex) {
             LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IncorrectEndException ex) {
             LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (ProcessFailureException ex) {
             LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
-            ctx.writeAndFlush(ex.getResponse());
+            this.writeActionAndFlush(ex.getResponse());
         }
     }
 
@@ -65,7 +65,7 @@ public class CommandFileListAction extends AbstractAction {
      * */
     @Override
     protected void receiveDataByProtocol() throws IncorrectEndException {
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }
@@ -90,18 +90,18 @@ public class CommandFileListAction extends AbstractAction {
 
         if (this.fileList.size() == 0) {
             { // write head
-                ctx.write(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
+                this.writeAction(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
             }
 
             { // write files count
-                ctx.write(0);
+                this.outByteBuf.writeInt(0);
             }
 
             { // write end
                 this.writeEndBytes();
             }
 
-            this.ctx.flush();
+            this.ctx.writeAndFlush(this.outByteBuf);
         } else {
             for (int i = 0; i < this.fileList.size(); i++) {
                 Path path = this.fileList.get(i);
@@ -109,16 +109,18 @@ public class CommandFileListAction extends AbstractAction {
 
                 LOGGER.log(Level.INFO, "{0} --> Sending file list part, file: {1}", new Object[]{ this.ctx.channel().id(), file.getName() });
 
+                this.outByteBuf.retain();
+
                 { // write head
-                    ctx.write(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
+                    this.writeAction(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
                 }
 
                 { // write files count
-                    ctx.write(this.fileList.size());
+                    this.outByteBuf.writeInt(this.fileList.size());
                 }
 
                 { // write current file index
-                    ctx.write(i);
+                    this.outByteBuf.writeInt(i);
                 }
 
                 { // write file name
@@ -126,7 +128,7 @@ public class CommandFileListAction extends AbstractAction {
                 }
 
                 { // write file size
-                    this.ctx.write(file.length());
+                    this.outByteBuf.writeLong(file.length());
                 }
 
                 { // write created date
@@ -138,7 +140,7 @@ public class CommandFileListAction extends AbstractAction {
                         e.printStackTrace();
                     }
 
-                    ctx.write(createdAt);
+                    this.outByteBuf.writeLong(createdAt);
                 }
 
                 { // write modified date
@@ -150,14 +152,16 @@ public class CommandFileListAction extends AbstractAction {
                         e.printStackTrace();
                     }
 
-                    ctx.write(modifiedAt);
+                    this.outByteBuf.writeLong(modifiedAt);
                 }
 
                 { // write end
                     this.writeEndBytes();
                 }
 
-                this.ctx.flush();
+                this.ctx.writeAndFlush(this.outByteBuf).syncUninterruptibly();
+
+                this.outByteBuf.clear();
             }
         }
     }

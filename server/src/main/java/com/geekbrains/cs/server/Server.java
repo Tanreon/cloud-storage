@@ -9,6 +9,9 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,7 +30,7 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
         // init methods before start server
-        Common.initLogger(LOGGER, Level.WARNING);
+        Common.initLogger(LOGGER, Level.INFO);
 
         // start server
         new Server(8189).run();
@@ -45,6 +48,7 @@ public class Server {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup);
             bootstrap.channel(NioServerSocketChannel.class);
+            bootstrap.option(ChannelOption.SO_BACKLOG, 128);
             bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
 //            bootstrap.childOption(ChannelOption.TCP_NODELAY, true); // отключено намерено так как много маленьких пакетиков
             bootstrap.childHandler(new ChannelInitializer<Channel>() {

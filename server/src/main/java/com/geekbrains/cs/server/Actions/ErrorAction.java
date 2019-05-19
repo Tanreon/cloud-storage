@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 public class ErrorAction extends AbstractAction {
     private static final Logger LOGGER = Logger.getLogger(Server.class.getName());
 
-    private ChannelHandlerContext ctx;
     private ActionType actionType;
     private OptionType optionType;
     private int status;
@@ -49,7 +48,7 @@ public class ErrorAction extends AbstractAction {
         LOGGER.log(Level.WARNING, "{0} -> Err request", ctx.channel().id());
 
         { // write head
-            ctx.writeAndFlush(new ActionResponse(this.actionType, this.optionType, this.status, this.message));
+            this.writeActionAndFlush(new ActionResponse(this.actionType, this.optionType, this.status, this.message));
         }
     }
 }

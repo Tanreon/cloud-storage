@@ -24,7 +24,7 @@ public class DownloadFileResponse extends AbstractResponse {
 
     public DownloadFileResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
 
         try {
             // Run protocol response processing
@@ -51,7 +51,7 @@ public class DownloadFileResponse extends AbstractResponse {
      * */
     @Override
     protected void receiveDataByProtocol() throws EmptyResponseException, IncorrectEndException {
-        if (this.byteBuf.isReadable()) {
+        if (this.inByteBuf.isReadable()) {
             this.readMeta();
         } else {
             throw new EmptyResponseException();
@@ -62,18 +62,18 @@ public class DownloadFileResponse extends AbstractResponse {
         }
 
         { // get full file size in Common.BUFFER_LENGTH bytes block
-            this.filePartsCount = this.byteBuf.readLong();
+            this.filePartsCount = this.inByteBuf.readLong();
         }
 
         { // get file part
-            this.fileCurrentPart = this.byteBuf.readInt();
+            this.fileCurrentPart = this.inByteBuf.readInt();
         }
 
         { // get data
             this.fileDataBytes = this.readBytesByLong();
         }
 
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }
@@ -111,7 +111,10 @@ public class DownloadFileResponse extends AbstractResponse {
                 mainController.getClientStorageFileRowList().stream()
                         .filter(item -> item.getName().equals(this.fileName))
                         .findFirst()
-                        .ifPresent(item -> item.setAvailability((int) Math.round(fileAvailability)));
+                        .ifPresent(item -> {
+                            item.setSize(this.fileCurrentPart * Common.BUFFER_LENGTH);
+                            item.setAvailability((int) Math.round(fileAvailability));
+                        });
             });
         } else {
             switch (this.message) {

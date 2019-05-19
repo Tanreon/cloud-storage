@@ -37,7 +37,7 @@ public class DownloadFileRequest extends AbstractRequest {
     @Override
     protected void sendDataByProtocol() {
         { // write meta
-            channel.write(new Request(ACTION_TYPE, OPTION_TYPE, false));
+            this.writeRequest(new Request(ACTION_TYPE, OPTION_TYPE, false));
         }
 
         { // write head
@@ -52,6 +52,6 @@ public class DownloadFileRequest extends AbstractRequest {
             this.writeEndBytes();
         }
 
-        this.channel.flush();
+        this.channel.writeAndFlush(this.outByteBuf).syncUninterruptibly();
     }
 }

@@ -21,7 +21,7 @@ public class UploadFileResponse extends AbstractResponse {
 
     public UploadFileResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
 
         try {
             // Run protocol response processing
@@ -45,7 +45,7 @@ public class UploadFileResponse extends AbstractResponse {
      * */
     @Override
     protected void receiveDataByProtocol() throws EmptyResponseException, IncorrectEndException {
-        if (this.byteBuf.isReadable()) {
+        if (this.inByteBuf.isReadable()) {
             this.readMeta();
         } else {
             throw new EmptyResponseException();
@@ -56,14 +56,14 @@ public class UploadFileResponse extends AbstractResponse {
         }
 
         { // get full file size in Common.BUFFER_LENGTH bytes block
-            this.filePartsCount = this.byteBuf.readLong();
+            this.filePartsCount = this.inByteBuf.readLong();
         }
 
         { // get file part
-            this.fileCurrentPart = this.byteBuf.readInt();
+            this.fileCurrentPart = this.inByteBuf.readInt();
         }
 
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }

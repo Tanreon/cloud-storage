@@ -7,9 +7,14 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.pool.FixedChannelPool;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -46,7 +51,7 @@ public class Client extends Application {
     @Override
     public void init() {
         // init logger
-        Common.initLogger(LOGGER, Level.WARNING);
+        Common.initLogger(LOGGER, Level.INFO);
 
         // init networking
         this.initNetwork();
@@ -80,7 +85,7 @@ public class Client extends Application {
     private void initNetwork() {
         Thread thread = new Thread(() -> {
             while (true) {
-                EventLoopGroup workerGroup = new NioEventLoopGroup(4);
+                EventLoopGroup workerGroup = new NioEventLoopGroup();
 
                 try {
                     Bootstrap bootstrap = new Bootstrap(); // (1)
@@ -89,9 +94,10 @@ public class Client extends Application {
                     bootstrap.option(ChannelOption.SO_KEEPALIVE, true); // (4)
                     bootstrap.handler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        public void initChannel(SocketChannel socketChannel) {
-                            socketChannel.pipeline().addLast(new DelimiterBasedFrameDecoder(Common.MAX_BUFFER_LENGTH, Unpooled.wrappedBuffer(Common.END_BYTES)));
-                            socketChannel.pipeline().addLast(new OutHandler(), new InHandler());
+                        public void initChannel(SocketChannel channel) {
+                            channel.pipeline().addLast(new DelimiterBasedFrameDecoder(Common.MAX_BUFFER_LENGTH, Unpooled.wrappedBuffer(Common.END_BYTES)));
+                            channel.pipeline().addLast(new InHandler());
+                            channel.pipeline().addLast(new OutHandler());
                         }
                     });
 

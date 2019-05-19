@@ -4,11 +4,6 @@ import com.geekbrains.cs.common.ActionType;
 import com.geekbrains.cs.common.Contracts.OptionType;
 
 public class ActionResponse extends AbstractResponse {
-    private ActionType actionType;
-    private OptionType optionType;
-    private int status;
-    private boolean last;
-
     public ActionResponse(ActionType actionType, OptionType optionType, int status) {
         this(actionType, optionType, status, true);
     }
@@ -30,21 +25,5 @@ public class ActionResponse extends AbstractResponse {
         this.status = status;
         this.message = message;
         this.last = last;
-    }
-
-    public boolean isLast() {
-        return this.last;
-    }
-
-    public ActionType getActionType() {
-        return actionType;
-    }
-
-    public OptionType getOptionType() {
-        return optionType;
-    }
-
-    public int getStatus() {
-        return status;
     }
 }

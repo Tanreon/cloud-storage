@@ -39,7 +39,7 @@ public class AccountSignInRequest extends AbstractRequest {
     @Override
     protected void sendDataByProtocol() {
         { // write meta
-            this.channel.write(new Request(ACTION_TYPE, OPTION_TYPE, false));
+            this.writeRequest(new Request(ACTION_TYPE, OPTION_TYPE, false));
         }
 
         { // write head
@@ -58,6 +58,6 @@ public class AccountSignInRequest extends AbstractRequest {
             this.writeEndBytes();
         }
 
-        this.channel.flush();
+        this.channel.writeAndFlush(this.outByteBuf).syncUninterruptibly();
     }
 }

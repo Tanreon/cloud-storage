@@ -65,7 +65,7 @@ public class InHandler extends ChannelInboundHandlerAdapter {
                 }
                 break;
             case DOWNLOAD:
-//                new AuthMiddleware(channel, byteBuf);
+//                new AuthMiddleware(channel, inByteBuf);
 //
 //                if (! channel.isRemoved()) {
                     DownloadOptionType downloadOptionType = DownloadOptionType.fromByte(optionTypeByte);

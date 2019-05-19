@@ -2,17 +2,17 @@ package com.geekbrains.cs.client.Requests;
 
 import com.geekbrains.cs.client.Client;
 import com.geekbrains.cs.client.Contracts.ProcessFailureException;
-import com.geekbrains.cs.client.Controllers.MainController;
 import com.geekbrains.cs.client.Request;
 import com.geekbrains.cs.common.ActionType;
 import com.geekbrains.cs.common.Common;
 import com.geekbrains.cs.common.Contracts.OptionType;
 import com.geekbrains.cs.common.OptionTypes.UploadOptionType;
 import com.geekbrains.cs.common.Services.FileService;
-import io.netty.channel.Channel;
-import io.netty.channel.DefaultFileRegion;
+import io.netty.channel.*;
 
-import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
@@ -25,7 +25,7 @@ public class UploadFileRequest extends AbstractRequest {
     private final OptionType OPTION_TYPE = UploadOptionType.FILE;
 
     private String fileName;
-    private File file;
+    private RandomAccessFile randomAccessFile;
 
     public UploadFileRequest(Channel channel, String fileName) {
         this.channel = channel;
@@ -39,32 +39,40 @@ public class UploadFileRequest extends AbstractRequest {
         } catch (ProcessFailureException ex) {
             LOGGER.log(Level.WARNING, "ProcessFailureException: {0}", ex.getMessage());
             Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Закачивание", ex.getMessage()));
+        } catch (FileNotFoundException ex) {
+            LOGGER.log(Level.WARNING, "FileNotFoundException: {0}", ex.getMessage());
+            Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Закачивание", "Указанный файл не найден"));
+        } catch (IOException ex) {
+            LOGGER.log(Level.WARNING, "IOException: {0}", ex.getMessage());
+            Client.getGui().runInThread(gui -> gui.showErrorAlert("Ошибка", "Закачивание", ex.getMessage()));
         }
     }
 
     @Override
-    protected void process() throws ProcessFailureException {
+    protected void process() throws ProcessFailureException, FileNotFoundException {
         Path storage = Paths.get(Client.STORAGE_PATH, this.fileName);
 
         if (! storage.toFile().exists()) {
             throw new ProcessFailureException("Файл не найден в локальном каталоге");
         }
 
-        this.file = storage.toFile();
+        this.randomAccessFile = new RandomAccessFile(storage.toFile(), "rw");
     }
 
     /**
      * protocol: [RESPONSE][fileNameLength][fileNameBytes][filePartsCount][currentFilePart][fileReadLength][fileReadBytes][END]
      * */
     @Override
-    protected void sendDataByProtocol() {
-        long filePartsCount = (long) Math.ceil((double) this.file.length() / Common.BUFFER_LENGTH);
+    protected void sendDataByProtocol() throws IOException {
+        long filePartsCount = (long) Math.ceil((double) this.randomAccessFile.length() / Common.BUFFER_LENGTH);
 
         for (int filePart = 0; filePart < filePartsCount; filePart++) {
             LOGGER.log(Level.INFO, "Sending file part, {0} of file: {1}", new Object[]{ filePart, this.fileName });
 
+            this.outByteBuf.retain();
+
             { // write meta
-                channel.write(new Request(ACTION_TYPE, OPTION_TYPE, false));
+                this.writeRequest(new Request(ACTION_TYPE, OPTION_TYPE, false));
             }
 
             { // write head
@@ -76,25 +84,30 @@ public class UploadFileRequest extends AbstractRequest {
             }
 
             { // write full file size in Common.BUFFER_LENGTH bytes block
-                channel.write(filePartsCount);
+                this.outByteBuf.writeLong(filePartsCount);
             }
 
             { // write bytes part
-                channel.write(filePart);
+                this.outByteBuf.writeInt(filePart);
             }
 
             { // write data
-                long availableBytes = FileService.availableBytes(filePart, this.file);
+                long availableBytes = FileService.availableBytes(filePart, this.randomAccessFile);
+                byte[] buffer = new byte[(int) availableBytes];
 
-                channel.write(availableBytes);
-                channel.write(new DefaultFileRegion(this.file, Common.BUFFER_LENGTH * filePart, availableBytes));
+                this.randomAccessFile.read(buffer);
+
+                this.outByteBuf.writeLong(availableBytes);
+                this.outByteBuf.writeBytes(buffer);
             }
 
             { // write end
                 this.writeEndBytes();
             }
 
-            this.channel.flush();
+            this.channel.writeAndFlush(this.outByteBuf).syncUninterruptibly();
+
+            this.outByteBuf.clear();
         }
     }
 }

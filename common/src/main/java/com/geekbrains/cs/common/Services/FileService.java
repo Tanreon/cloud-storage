@@ -2,13 +2,14 @@ package com.geekbrains.cs.common.Services;
 
 import com.geekbrains.cs.common.Common;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
 public class FileService {
-    public static long availableBytes(int filePart, File file) {
+    public static long availableBytes(int filePart, RandomAccessFile randomAccessFile) throws IOException {
         long availableBytes;
 
-        long fileLength = file.length();
+        long fileLength = randomAccessFile.length();
 
         if (Common.BUFFER_LENGTH > fileLength) {
             availableBytes = fileLength;

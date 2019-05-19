@@ -28,7 +28,7 @@ public class AccountSignUpAction extends AbstractAction {
 
     public AccountSignUpAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
 
         try {
             // Run protocol request processing
@@ -39,19 +39,19 @@ public class AccountSignUpAction extends AbstractAction {
             this.sendDataByProtocol();
         } catch (IndexOutOfBoundsException ex) {
             LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (EmptyRequestException ex) {
             LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IncorrectEndException ex) {
             LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (ProcessException ex) {
             LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
         } catch (InvalidRequestInputException ex) {
             LOGGER.log(Level.INFO, "{0} -> InvalidRequestInputException: {1}", new Object[]{ ctx.channel().id(), ex.getMessage() });
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
         }
     }
 
@@ -60,7 +60,7 @@ public class AccountSignUpAction extends AbstractAction {
      * */
     @Override
     protected void receiveDataByProtocol() throws EmptyRequestException, IncorrectEndException {
-        if (! this.byteBuf.isReadable()) {
+        if (! this.inByteBuf.isReadable()) {
             throw new EmptyRequestException();
         }
 
@@ -76,7 +76,7 @@ public class AccountSignUpAction extends AbstractAction {
             this.password = this.readStringByShort();
         }
 
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }
@@ -115,7 +115,7 @@ public class AccountSignUpAction extends AbstractAction {
         LOGGER.log(Level.INFO, "{0} -> Success signed up: {1}", new Object[] { this.ctx.channel().id(), this.login });
 
         { // write head
-            this.ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK"));
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK"));
         }
     }
 }

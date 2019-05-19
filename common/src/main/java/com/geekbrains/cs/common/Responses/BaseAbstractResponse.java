@@ -3,45 +3,43 @@ package com.geekbrains.cs.common.Responses;
 import com.geekbrains.cs.common.BaseAbstractNetworkInteraction;
 import com.geekbrains.cs.common.Common;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 
 public abstract class BaseAbstractResponse extends BaseAbstractNetworkInteraction {
     protected ChannelHandlerContext ctx;
-    protected ByteBuf byteBuf;
+    protected ByteBuf inByteBuf;
+    protected ByteBuf outByteBuf = Unpooled.directBuffer();
 
     protected abstract void receiveDataByProtocol() throws Exception;
 
     protected String readStringByInt() {
-        return this.readString(this.byteBuf.readInt());
+        return this.readString(this.inByteBuf.readInt());
     }
 
     protected String readStringByShort() {
-        return this.readString(this.byteBuf.readShort());
-    }
-
-    protected String readStringByLength(int length) {
-        return this.readString(length);
+        return this.readString(this.inByteBuf.readShort());
     }
 
     protected byte[] readBytesByLong() {
-        return this.readBytes((int) this.byteBuf.readLong());
+        return this.readBytes((int) this.inByteBuf.readLong());
     }
 
     protected byte[] readBytesByInt() {
-        return this.readBytes(this.byteBuf.readInt());
+        return this.readBytes(this.inByteBuf.readInt());
     }
 
     protected byte[] readBytes(int length) {
         byte[] bytes = new byte[length];
 
-        this.byteBuf.readBytes(bytes);
+        this.inByteBuf.readBytes(bytes);
 
         return bytes;
     }
 
-    private String readString(int length) {
+    public String readString(int length) {
         byte[] stringBytes = new byte[length];
-        this.byteBuf.readBytes(stringBytes);
+        this.inByteBuf.readBytes(stringBytes);
 
         return new String(stringBytes);
     }
@@ -50,19 +48,19 @@ public abstract class BaseAbstractResponse extends BaseAbstractNetworkInteractio
         byte[] stringBytes = string.getBytes();
         short stringBytesLength = (short) stringBytes.length;
 
-        ctx.write(stringBytesLength);
-        ctx.write(stringBytes);
+        this.outByteBuf.writeShort(stringBytesLength);
+        this.outByteBuf.writeBytes(stringBytes);
     }
 
     protected void writeStringByInt(String string) {
         byte[] stringBytes = string.getBytes();
         int stringBytesLength = stringBytes.length;
 
-        ctx.write(stringBytesLength);
-        ctx.write(stringBytes);
+        this.outByteBuf.writeInt(stringBytesLength);
+        this.outByteBuf.writeBytes(stringBytes);
     }
 
     protected void writeEndBytes() {
-        ctx.write(Common.END_BYTES);
+        this.outByteBuf.writeBytes(Common.END_BYTES);
     }
 }
