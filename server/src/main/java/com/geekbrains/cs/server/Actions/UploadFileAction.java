@@ -7,6 +7,8 @@ import com.geekbrains.cs.common.Contracts.IncorrectEndException;
 import com.geekbrains.cs.common.Contracts.OptionType;
 import com.geekbrains.cs.common.OptionTypes.UploadOptionType;
 import com.geekbrains.cs.server.ActionResponse;
+import com.geekbrains.cs.server.Contracts.MiddlewareEvent;
+import com.geekbrains.cs.server.Events.AuthMiddlewareEvent;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -16,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,18 +28,17 @@ public class UploadFileAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.UPLOAD;
     private final OptionType OPTION_TYPE = UploadOptionType.FILE;
 
-    ////////////////////
-    private String login = "test";
-    ////////////////////
+    private LinkedHashMap<String, MiddlewareEvent> middlewareEventMap;
 
     private String fileName;
     private long filePartsCount;
     private int fileCurrentPart;
     private byte[] fileDataBytes;
 
-    public UploadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+    public UploadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf, LinkedHashMap<String, MiddlewareEvent> middlewareEventMap) {
         this.ctx = ctx;
         this.inByteBuf = byteBuf;
+        this.middlewareEventMap = middlewareEventMap;
 
         try {
             // Run protocol request processing
@@ -92,7 +94,8 @@ public class UploadFileAction extends AbstractAction {
 
     @Override
     protected void process() throws IOException {
-        File file = Paths.get(Server.STORAGE_PATH, this.login, this.fileName).toFile();
+        AuthMiddlewareEvent authMiddleware = (AuthMiddlewareEvent) this.middlewareEventMap.get("authMiddleware");
+        File file = Paths.get(Server.STORAGE_PATH, authMiddleware.getLogin(), this.fileName).toFile();
 
         if (this.fileCurrentPart == 0 && file.exists()) {
             file.delete();

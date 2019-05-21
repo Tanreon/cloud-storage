@@ -5,7 +5,9 @@ import com.geekbrains.cs.common.Contracts.IncorrectEndException;
 import com.geekbrains.cs.common.Contracts.OptionType;
 import com.geekbrains.cs.common.OptionTypes.CommandOptionType;
 import com.geekbrains.cs.server.ActionResponse;
+import com.geekbrains.cs.server.Contracts.MiddlewareEvent;
 import com.geekbrains.cs.server.Contracts.ProcessFailureException;
+import com.geekbrains.cs.server.Events.AuthMiddlewareEvent;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,15 +31,14 @@ public class CommandFileListAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.COMMAND;
     private final OptionType OPTION_TYPE = CommandOptionType.FILE_LIST;
 
-    ////////////////////
-    private String login = "test";
-    ////////////////////
+    private LinkedHashMap<String, MiddlewareEvent> middlewareEventMap;
 
     private List<Path> fileList;
 
-    public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+    public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf byteBuf, LinkedHashMap<String, MiddlewareEvent> middlewareEventMap) {
         this.ctx = ctx;
         this.inByteBuf = byteBuf;
+        this.middlewareEventMap = middlewareEventMap;
 
         try {
             // Run protocol request processing
@@ -53,7 +55,7 @@ public class CommandFileListAction extends AbstractAction {
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (ProcessFailureException ex) {
             LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
-            this.writeActionAndFlush(ex.getResponse());
+            this.writeActionAndFlush((ActionResponse) ex.getResponse());
         }
     }
 
@@ -72,7 +74,8 @@ public class CommandFileListAction extends AbstractAction {
 
     @Override
     protected void process() throws ProcessFailureException {
-        Path storage = Paths.get(Server.STORAGE_PATH, this.login);
+        AuthMiddlewareEvent authMiddleware = (AuthMiddlewareEvent) this.middlewareEventMap.get("authMiddleware");
+        Path storage = Paths.get(Server.STORAGE_PATH, authMiddleware.getLogin());
 
         try {
             this.fileList = Files.list(storage).collect(Collectors.toList());
@@ -86,7 +89,7 @@ public class CommandFileListAction extends AbstractAction {
      * */
     @Override
     protected void sendDataByProtocol() {
-        LOGGER.log(Level.INFO, "{0} -> File list command success: {1}", new Object[]{this.ctx.channel().id(), this.login});
+        LOGGER.log(Level.INFO, "{0} -> File list command success", this.ctx.channel().id());
 
         if (this.fileList.size() == 0) {
             { // write head

@@ -7,12 +7,15 @@ import com.geekbrains.cs.common.Contracts.OptionType;
 import com.geekbrains.cs.common.OptionTypes.CommandOptionType;
 import com.geekbrains.cs.server.ActionResponse;
 import com.geekbrains.cs.common.Contracts.ProcessException;
+import com.geekbrains.cs.server.Contracts.MiddlewareEvent;
+import com.geekbrains.cs.server.Events.AuthMiddlewareEvent;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,16 +25,15 @@ public class CommandRenameFileAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.COMMAND;
     private final OptionType OPTION_TYPE = CommandOptionType.RENAME_FILE;
 
-    ////////////////////
-    private String login = "test";
-    ////////////////////
+    private LinkedHashMap<String, MiddlewareEvent> middlewareEventMap;
 
     private String currentFileName;
     private String newFileName;
 
-    public CommandRenameFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+    public CommandRenameFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf, LinkedHashMap<String, MiddlewareEvent> middlewareEventMap) {
         this.ctx = ctx;
         this.inByteBuf = byteBuf;
+        this.middlewareEventMap = middlewareEventMap;
 
         try {
             // Run protocol request processing
@@ -79,13 +81,14 @@ public class CommandRenameFileAction extends AbstractAction {
 
     @Override
     protected void process() throws ProcessException {
-        Path oldFilePath = Paths.get(Server.STORAGE_PATH, this.login, this.currentFileName);
+        AuthMiddlewareEvent authMiddleware = (AuthMiddlewareEvent) this.middlewareEventMap.get("authMiddleware");
+        Path oldFilePath = Paths.get(Server.STORAGE_PATH, authMiddleware.getLogin(), this.currentFileName);
 
         if (! oldFilePath.toFile().exists()) {
             throw new ProcessException(404, "CURRENT_FILE_NOT_FOUND");
         }
 
-        Path newFilePath = Paths.get(Server.STORAGE_PATH, this.login, this.newFileName);
+        Path newFilePath = Paths.get(Server.STORAGE_PATH, authMiddleware.getLogin(), this.newFileName);
 
         if (newFilePath.toFile().exists()) {
             throw new ProcessException(403, "NEW_FILE_EXISTS");

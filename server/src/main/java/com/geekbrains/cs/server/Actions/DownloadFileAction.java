@@ -2,13 +2,12 @@ package com.geekbrains.cs.server.Actions;
 
 import com.geekbrains.cs.common.ActionType;
 import com.geekbrains.cs.common.Common;
-import com.geekbrains.cs.common.Contracts.EmptyRequestException;
-import com.geekbrains.cs.common.Contracts.IncorrectEndException;
-import com.geekbrains.cs.common.Contracts.OptionType;
+import com.geekbrains.cs.common.Contracts.*;
 import com.geekbrains.cs.common.OptionTypes.DownloadOptionType;
 import com.geekbrains.cs.common.Services.FileService;
 import com.geekbrains.cs.server.ActionResponse;
-import com.geekbrains.cs.common.Contracts.ProcessException;
+import com.geekbrains.cs.server.Contracts.MiddlewareEvent;
+import com.geekbrains.cs.server.Events.AuthMiddlewareEvent;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -16,6 +15,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,16 +25,15 @@ public class DownloadFileAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.DOWNLOAD;
     private final OptionType OPTION_TYPE = DownloadOptionType.FILE;
 
-    ////////////////////
-    private String login = "test";
-    ////////////////////
+    private LinkedHashMap<String, MiddlewareEvent> middlewareEventMap;
 
     private String fileName;
     private RandomAccessFile randomAccessFile;
 
-    public DownloadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+    public DownloadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf, LinkedHashMap<String, MiddlewareEvent> middlewareEventMap) {
         this.ctx = ctx;
         this.inByteBuf = byteBuf;
+        this.middlewareEventMap = middlewareEventMap;
 
         try {
             // Run protocol request processing
@@ -81,7 +80,8 @@ public class DownloadFileAction extends AbstractAction {
 
     @Override
     protected void process() throws ProcessException, FileNotFoundException {
-        Path storage = Paths.get(Server.STORAGE_PATH, this.login, this.fileName);
+        AuthMiddlewareEvent authMiddleware = (AuthMiddlewareEvent) this.middlewareEventMap.get("authMiddleware");
+        Path storage = Paths.get(Server.STORAGE_PATH, authMiddleware.getLogin(), this.fileName);
 
         if (! storage.toFile().exists()) {
             throw new ProcessException(404, "FILE_NOT_FOUND");

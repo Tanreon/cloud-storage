@@ -152,4 +152,27 @@ public class AccountSignService {
 
         return result;
     }
+
+    public static String getLoginByKey(String key) throws EmptyResultException {
+        String login = "";
+
+        try {
+            PreparedStatement statement = Server.getSqlHandler().getConnection().prepareStatement("SELECT login FROM user JOIN user_key ON user_key.user_id = user.id WHERE user_key.key = ?");
+            statement.setString(1, key);
+
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                login = resultSet.getString(1);
+            } else {
+                throw new EmptyResultException("Key not found");
+            }
+
+            resultSet.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return login;
+    }
 }

@@ -4,6 +4,22 @@ import com.geekbrains.cs.common.ActionType;
 import com.geekbrains.cs.common.Contracts.OptionType;
 
 public class ActionResponse extends AbstractResponse {
+    protected ActionType actionType;
+    protected OptionType optionType;
+    protected int status;
+
+    public ActionType getActionType() {
+        return actionType;
+    }
+
+    public OptionType getOptionType() {
+        return optionType;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
     public ActionResponse(ActionType actionType, OptionType optionType, int status) {
         this(actionType, optionType, status, true);
     }

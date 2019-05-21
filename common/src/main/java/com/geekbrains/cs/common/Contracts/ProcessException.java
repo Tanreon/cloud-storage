@@ -11,6 +11,11 @@ public class ProcessException extends Exception {
         this.message = message;
     }
 
+    public ProcessException(String message) {
+        super();
+        this.message = message;
+    }
+
     public int getStatus() {
         return this.status;
     }

@@ -17,7 +17,7 @@ public abstract class BaseAbstractResponse extends BaseAbstractNetworkInteractio
         return this.readString(this.inByteBuf.readInt());
     }
 
-    protected String readStringByShort() {
+    public String readStringByShort() {
         return this.readString(this.inByteBuf.readShort());
     }
 
@@ -37,7 +37,7 @@ public abstract class BaseAbstractResponse extends BaseAbstractNetworkInteractio
         return bytes;
     }
 
-    public String readString(int length) {
+    protected String readString(int length) {
         byte[] stringBytes = new byte[length];
         this.inByteBuf.readBytes(stringBytes);
 

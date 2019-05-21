@@ -56,7 +56,7 @@ public class AccountSignInAction extends AbstractAction {
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
         } catch (ProcessFailureException ex) {
             LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
-            this.writeActionAndFlush(ex.getResponse());
+            this.writeActionAndFlush((ActionResponse) ex.getResponse());
         }
     }
 
