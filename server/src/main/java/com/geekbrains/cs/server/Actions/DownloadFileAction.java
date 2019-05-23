@@ -6,8 +6,7 @@ import com.geekbrains.cs.common.Contracts.*;
 import com.geekbrains.cs.common.OptionTypes.DownloadOptionType;
 import com.geekbrains.cs.common.Services.FileService;
 import com.geekbrains.cs.server.ActionResponse;
-import com.geekbrains.cs.server.Contracts.MiddlewareEvent;
-import com.geekbrains.cs.server.Events.AuthMiddlewareEvent;
+import com.geekbrains.cs.server.Auth;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,7 +14,6 @@ import io.netty.channel.ChannelHandlerContext;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,15 +23,15 @@ public class DownloadFileAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.DOWNLOAD;
     private final OptionType OPTION_TYPE = DownloadOptionType.FILE;
 
-    private LinkedHashMap<String, MiddlewareEvent> middlewareEventMap;
+    private Auth auth;
 
     private String fileName;
     private RandomAccessFile randomAccessFile;
 
-    public DownloadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf, LinkedHashMap<String, MiddlewareEvent> middlewareEventMap) {
+    public DownloadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf, Auth auth) {
         this.ctx = ctx;
         this.inByteBuf = byteBuf;
-        this.middlewareEventMap = middlewareEventMap;
+        this.auth = auth;
 
         try {
             // Run protocol request processing
@@ -43,19 +41,19 @@ public class DownloadFileAction extends AbstractAction {
             // Run protocol answer processing
             this.sendDataByProtocol();
         } catch (IndexOutOfBoundsException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (EmptyRequestException ex) {
-            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IncorrectEndException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (ProcessException ex) {
-            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[]{ctx.channel().id(), ex.getMessage()});
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
         } catch (IOException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IOException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> IOException: {1}", new Object[]{ctx.channel().id(), ex.getMessage()});
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
         }
     }
@@ -80,8 +78,7 @@ public class DownloadFileAction extends AbstractAction {
 
     @Override
     protected void process() throws ProcessException, FileNotFoundException {
-        AuthMiddlewareEvent authMiddleware = (AuthMiddlewareEvent) this.middlewareEventMap.get("authMiddleware");
-        Path storage = Paths.get(Server.STORAGE_PATH, authMiddleware.getLogin(), this.fileName);
+        Path storage = Paths.get(Server.STORAGE_PATH, this.auth.getLogin(), this.fileName);
 
         if (! storage.toFile().exists()) {
             throw new ProcessException(404, "FILE_NOT_FOUND");
@@ -106,10 +103,6 @@ public class DownloadFileAction extends AbstractAction {
 
             { // write meta
                 this.writeAction(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
-            }
-
-            { // write head
-
             }
 
             { // write file name
@@ -138,7 +131,7 @@ public class DownloadFileAction extends AbstractAction {
                 this.writeEndBytes();
             }
 
-            this.ctx.writeAndFlush(this.outByteBuf).syncUninterruptibly();
+            this.ctx.writeAndFlush(this.outByteBuf, this.ctx.newProgressivePromise()).syncUninterruptibly();
 
             this.outByteBuf.clear();
         }

@@ -64,6 +64,6 @@ public class AccountSignUpRequest extends AbstractRequest {
             this.writeEndBytes();
         }
 
-        this.channel.writeAndFlush(this.outByteBuf).syncUninterruptibly();
+        this.channel.writeAndFlush(this.outByteBuf);
     }
 }

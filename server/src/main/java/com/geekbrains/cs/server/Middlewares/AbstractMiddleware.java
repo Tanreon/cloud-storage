@@ -1,12 +1,10 @@
 package com.geekbrains.cs.server.Middlewares;
 
-import com.geekbrains.cs.common.Responses.BaseAbstractResponse;
 import com.geekbrains.cs.common.HeaderType;
-import com.geekbrains.cs.server.AbstractResponse;
+import com.geekbrains.cs.common.Responses.BaseAbstractResponse;
+import com.geekbrains.cs.server.Handlers.InMiddlewareHandler;
 import com.geekbrains.cs.server.MiddlewareResponse;
 import com.geekbrains.cs.server.Server;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 
 import java.util.LinkedHashMap;
@@ -14,22 +12,19 @@ import java.util.logging.Logger;
 
 public abstract class AbstractMiddleware extends BaseAbstractResponse {
     protected static final Logger LOGGER = Logger.getLogger(Server.class.getName());
-    protected LinkedHashMap<HeaderType, String> headersMap = new LinkedHashMap<>();
 
-    protected LinkedHashMap<HeaderType, String> readHeaders() {
-        byte headersCount = this.inByteBuf.readByte();
+    protected LinkedHashMap<HeaderType, String> headersMap;
+    protected boolean result = false;
 
-        LinkedHashMap<HeaderType, String> headersMap = new LinkedHashMap<>();
-
-        for (int i = 0; i < headersCount; i++) {
-            byte headerTypeByte = this.inByteBuf.readByte();
-            String header = this.readStringByShort();
-
-            headersMap.put(HeaderType.fromByte(headerTypeByte), header);
-        }
-
-        return headersMap;
+    public boolean canCallNext() {
+        return this.result;
     }
+
+    protected void next() {
+        this.result = true;
+    }
+
+    abstract public void init();
 
     protected void writeMiddleware(MiddlewareResponse response) {
         this.outByteBuf.writeByte(response.getHeaderType().getValue());

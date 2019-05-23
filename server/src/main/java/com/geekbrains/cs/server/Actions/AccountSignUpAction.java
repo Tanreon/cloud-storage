@@ -8,11 +8,16 @@ import com.geekbrains.cs.common.OptionTypes.AccountOptionType;
 import com.geekbrains.cs.server.ActionResponse;
 import com.geekbrains.cs.server.Contracts.InvalidRequestInputException;
 import com.geekbrains.cs.common.Contracts.ProcessException;
+import com.geekbrains.cs.server.Contracts.ProcessFailureException;
 import com.geekbrains.cs.server.Server;
 import com.geekbrains.cs.server.Services.AccountSignService;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,20 +43,26 @@ public class AccountSignUpAction extends AbstractAction {
             // Run protocol answer processing
             this.sendDataByProtocol();
         } catch (IndexOutOfBoundsException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (EmptyRequestException ex) {
-            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IncorrectEndException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (ProcessException ex) {
-            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
         } catch (InvalidRequestInputException ex) {
-            LOGGER.log(Level.INFO, "{0} -> InvalidRequestInputException: {1}", new Object[]{ ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> InvalidRequestInputException: {1}", new Object[]{ this.ctx.channel().id(), ex.getMessage() });
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
+        } catch (IOException ex) {
+            LOGGER.log(Level.INFO, "{0} -> IOException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
+        } catch (ProcessFailureException ex) {
+            LOGGER.log(Level.INFO, "{0} -> ProcessFailureException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
+            this.writeActionAndFlush((ActionResponse) ex.getResponse());
         }
     }
 
@@ -82,7 +93,7 @@ public class AccountSignUpAction extends AbstractAction {
     }
 
     @Override
-    protected void process() throws InvalidRequestInputException, ProcessException {
+    protected void process() throws InvalidRequestInputException, ProcessException, ProcessFailureException, IOException {
         if (this.login.length() < 2) {
             throw new InvalidRequestInputException(400, "LOGIN_LENGTH_SMALL");
         }
@@ -104,7 +115,19 @@ public class AccountSignUpAction extends AbstractAction {
             throw new ProcessException(403, "EMAIL_ALREADY_EXISTS");
         }
 
-        AccountSignService.create(this.login, this.email, this.password);
+        { // создаем учетную запись
+            AccountSignService.create(this.login, this.email, this.password);
+        }
+
+        { // создаем пользовательский каталог
+            Path storage = Paths.get(Server.STORAGE_PATH, this.login);
+
+            if (Files.exists(storage)) {
+                throw new ProcessFailureException(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"), "Ошибка при создании пользовательского каталога");
+            }
+
+            Files.createDirectory(storage);
+        }
     }
 
     /**

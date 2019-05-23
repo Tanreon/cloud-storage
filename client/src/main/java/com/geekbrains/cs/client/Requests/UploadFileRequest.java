@@ -2,14 +2,18 @@ package com.geekbrains.cs.client.Requests;
 
 import com.geekbrains.cs.client.Client;
 import com.geekbrains.cs.client.Contracts.ProcessFailureException;
+import com.geekbrains.cs.client.Header;
 import com.geekbrains.cs.client.Request;
 import com.geekbrains.cs.common.ActionType;
 import com.geekbrains.cs.common.Common;
 import com.geekbrains.cs.common.Contracts.OptionType;
+import com.geekbrains.cs.common.HeaderType;
 import com.geekbrains.cs.common.OptionTypes.UploadOptionType;
 import com.geekbrains.cs.common.Services.FileService;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -76,7 +80,7 @@ public class UploadFileRequest extends AbstractRequest {
             }
 
             { // write head
-
+                this.writeHeader(new Header(HeaderType.AUTH, Client.getAuth().getKey()));
             }
 
             { // write file name
@@ -93,6 +97,7 @@ public class UploadFileRequest extends AbstractRequest {
 
             { // write data
                 long availableBytes = FileService.availableBytes(filePart, this.randomAccessFile);
+
                 byte[] buffer = new byte[(int) availableBytes];
 
                 this.randomAccessFile.read(buffer);
@@ -105,9 +110,11 @@ public class UploadFileRequest extends AbstractRequest {
                 this.writeEndBytes();
             }
 
-            this.channel.writeAndFlush(this.outByteBuf).syncUninterruptibly();
+            this.channel.writeAndFlush(this.outByteBuf, this.channel.newProgressivePromise()).syncUninterruptibly();
 
             this.outByteBuf.clear();
         }
+
+        this.randomAccessFile.close();
     }
 }

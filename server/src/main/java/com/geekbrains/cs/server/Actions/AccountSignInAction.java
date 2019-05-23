@@ -40,22 +40,22 @@ public class AccountSignInAction extends AbstractAction {
             // Run protocol answer processing
             this.sendDataByProtocol();
         } catch (IndexOutOfBoundsException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (EmptyRequestException ex) {
-            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IncorrectEndException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", ctx.channel().id());
+            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", this.ctx.channel().id());
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (ProcessException ex) {
-            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
         } catch (InvalidRequestInputException ex) {
-            LOGGER.log(Level.INFO, "{0} -> InvalidRequestInputException: {1}", new Object[]{ ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> InvalidRequestInputException: {1}", new Object[]{ this.ctx.channel().id(), ex.getMessage() });
             this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, ex.getStatus(), ex.getMessage()));
         } catch (ProcessFailureException ex) {
-            LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
             this.writeActionAndFlush((ActionResponse) ex.getResponse());
         }
     }
@@ -77,9 +77,9 @@ public class AccountSignInAction extends AbstractAction {
             this.password = this.readStringByShort();
         }
 
-        if (this.inByteBuf.isReadable()) { // check end
-            throw new IncorrectEndException();
-        }
+//        if (this.inByteBuf.isReadable()) { // check end
+//            throw new IncorrectEndException();
+//        }
     }
 
     @Override

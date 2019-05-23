@@ -2,6 +2,7 @@ package com.geekbrains.cs.server;
 
 import com.geekbrains.cs.common.Common;
 import com.geekbrains.cs.server.Handlers.InHandler;
+import com.geekbrains.cs.server.Handlers.InMiddlewareHandler;
 import com.geekbrains.cs.server.Handlers.OutHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
@@ -10,6 +11,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,9 +20,14 @@ public class Server {
     public static final Logger LOGGER = Logger.getLogger(Server.class.getName());
     public static final String STORAGE_PATH = "server_storage";
 
+    private static ExecutorService executor = Executors.newCachedThreadPool();
     private static SQLHandler sqlHandler;
 
     private int port;
+
+    public static ExecutorService getExecutor() {
+        return executor;
+    }
 
     public Server(int port) {
         this.port = port;
@@ -52,7 +60,9 @@ public class Server {
                 @Override
                 protected void initChannel(Channel channel) {
                     channel.pipeline().addLast(new DelimiterBasedFrameDecoder(Common.MAX_BUFFER_LENGTH, Unpooled.wrappedBuffer(Common.END_BYTES)));
-                    channel.pipeline().addLast(new OutHandler(), new InHandler());
+                    channel.pipeline().addLast(new OutHandler());
+                    channel.pipeline().addLast(new InMiddlewareHandler());
+                    channel.pipeline().addLast(new InHandler());
                 }
             });
 

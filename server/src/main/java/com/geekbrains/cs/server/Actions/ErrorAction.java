@@ -45,7 +45,7 @@ public class ErrorAction extends AbstractAction {
 
     @Override
     protected void sendDataByProtocol() {
-        LOGGER.log(Level.WARNING, "{0} -> Err request", ctx.channel().id());
+        LOGGER.log(Level.WARNING, "{0} -> Err request", this.ctx.channel().id());
 
         { // write head
             this.writeActionAndFlush(new ActionResponse(this.actionType, this.optionType, this.status, this.message));

@@ -1,5 +1,6 @@
 package com.geekbrains.cs.client.Requests;
 
+import com.geekbrains.cs.client.Header;
 import com.geekbrains.cs.client.Request;
 import com.geekbrains.cs.common.BaseAbstractNetworkInteraction;
 import com.geekbrains.cs.common.Common;
@@ -40,5 +41,18 @@ abstract public class AbstractRequest extends BaseAbstractNetworkInteraction {
         if (request.isLast()) {
             this.writeEndBytes();
         }
+    }
+
+    protected void writeHeaders(Header[] headers) {
+        this.outByteBuf.writeByte(headers.length);
+
+        for (Header header : headers) {
+            this.outByteBuf.writeByte(header.getHeaderType().getValue());
+            this.writeStringByShort(header.getValue());
+        }
+    }
+
+    protected void writeHeader(Header header) {
+        this.writeHeaders(new Header[] { header });
     }
 }

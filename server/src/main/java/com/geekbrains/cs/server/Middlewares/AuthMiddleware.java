@@ -1,18 +1,20 @@
 package com.geekbrains.cs.server.Middlewares;
 
-import com.geekbrains.cs.common.Contracts.EmptyHeaderException;
 import com.geekbrains.cs.common.Contracts.ProcessException;
-import com.geekbrains.cs.server.Events.AuthMiddlewareEvent;
+import com.geekbrains.cs.server.Auth;
 import com.geekbrains.cs.server.Contracts.EmptyResultException;
 import com.geekbrains.cs.server.Contracts.InvalidHeaderException;
 import com.geekbrains.cs.common.HeaderType;
 import com.geekbrains.cs.server.Contracts.ProcessFailureException;
+import com.geekbrains.cs.server.Handlers.InHandler;
+import com.geekbrains.cs.server.Handlers.InMiddlewareHandler;
 import com.geekbrains.cs.server.MiddlewareResponse;
 import com.geekbrains.cs.server.Server;
 import com.geekbrains.cs.server.Services.AccountSignService;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.util.LinkedHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,37 +28,30 @@ public class AuthMiddleware extends AbstractMiddleware {
     public AuthMiddleware(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
         this.inByteBuf = byteBuf;
+    }
+
+    public void init() {
+        this.headersMap = this.ctx.pipeline().get(InMiddlewareHandler.class).getHeadersMap();
 
         try {
             // Run protocol request processing
             this.receiveDataByProtocol();
             // Run data processing
             this.process();
-        } catch (EmptyHeaderException ex) {
-            LOGGER.log(Level.INFO, "{0} -> EmptyHeaderException", ctx.channel().id());
-            this.writeMiddlewareAndFlush(new MiddlewareResponse(HEADER_TYPE, "BAD_HEADER"));
         } catch (InvalidHeaderException ex) {
-            LOGGER.log(Level.INFO, "{0} -> InvalidHeaderException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> InvalidHeaderException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
             this.writeMiddlewareAndFlush(new MiddlewareResponse(HEADER_TYPE, ex.getMessage()));
         } catch (ProcessException ex) {
-            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.INFO, "{0} -> ProcessException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
             this.writeMiddlewareAndFlush(new MiddlewareResponse(HEADER_TYPE, ex.getMessage()));
         } catch (ProcessFailureException ex) {
-            LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
+            LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
             this.writeMiddlewareAndFlush((MiddlewareResponse) ex.getResponse());
         }
     }
 
     @Override
-    protected void receiveDataByProtocol() throws EmptyHeaderException, InvalidHeaderException {
-        if (! this.inByteBuf.isReadable()) {
-            throw new EmptyHeaderException();
-        }
-
-        {
-            this.headersMap = this.readHeaders();
-        }
-
+    protected void receiveDataByProtocol() throws InvalidHeaderException {
         if (! this.headersMap.containsKey(HEADER_TYPE)) {
             throw new InvalidHeaderException("AUTH_HEADER_NOT_FOUND");
         }
@@ -81,11 +76,14 @@ public class AuthMiddleware extends AbstractMiddleware {
         }
 
         {
-            AuthMiddlewareEvent authEvent = new AuthMiddlewareEvent();
-            authEvent.setSignedIn(true);
-            authEvent.setLogin(login);
+            Auth auth = new Auth();
+            auth.setLogin(login);
 
-            this.ctx.fireUserEventTriggered(authEvent);
+            this.ctx.pipeline().get(InHandler.class).setAuth(auth);
+        }
+
+        { // next middleware
+            this.next();
         }
     }
 }
