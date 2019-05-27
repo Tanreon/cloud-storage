@@ -7,6 +7,7 @@ import com.geekbrains.cs.common.Contracts.IncorrectEndException;
 import com.geekbrains.cs.common.Contracts.OptionType;
 import com.geekbrains.cs.common.OptionTypes.UploadOptionType;
 import com.geekbrains.cs.server.ActionResponse;
+import com.geekbrains.cs.server.Auth;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -25,18 +26,17 @@ public class UploadFileAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.UPLOAD;
     private final OptionType OPTION_TYPE = UploadOptionType.FILE;
 
-    ////////////////////
-    private String login = "test";
-    ////////////////////
+    private Auth auth;
 
     private String fileName;
     private long filePartsCount;
     private int fileCurrentPart;
     private byte[] fileDataBytes;
 
-    public UploadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+    public UploadFileAction(ChannelHandlerContext ctx, ByteBuf byteBuf, Auth auth) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
+        this.auth = auth;
 
         try {
             // Run protocol request processing
@@ -46,17 +46,17 @@ public class UploadFileAction extends AbstractAction {
             // Run protocol answer processing
             this.sendDataByProtocol();
         } catch (IndexOutOfBoundsException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", this.ctx.channel().id());
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (EmptyRequestException ex) {
-            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            LOGGER.log(Level.INFO, "{0} -> EmptyRequestException", this.ctx.channel().id());
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IncorrectEndException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", this.ctx.channel().id());
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IOException ex) {
-            LOGGER.log(Level.WARNING, "{0} -> IOException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
+            LOGGER.log(Level.WARNING, "{0} -> IOException: {1}", new Object[]{this.ctx.channel().id(), ex.getMessage()});
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 500, "SERVER_ERROR"));
         }
     }
 
@@ -65,7 +65,7 @@ public class UploadFileAction extends AbstractAction {
      * */
     @Override
     protected void receiveDataByProtocol() throws IncorrectEndException, EmptyRequestException {
-        if (! this.byteBuf.isReadable()) {
+        if (! this.inByteBuf.isReadable()) {
             throw new EmptyRequestException();
         }
 
@@ -74,25 +74,25 @@ public class UploadFileAction extends AbstractAction {
         }
 
         { // get full file size in Common.BUFFER_LENGTH bytes block
-            this.filePartsCount = this.byteBuf.readLong();
+            this.filePartsCount = this.inByteBuf.readLong();
         }
 
         { // get file part
-            this.fileCurrentPart = this.byteBuf.readInt();
+            this.fileCurrentPart = this.inByteBuf.readInt();
         }
 
         { // get data
             this.fileDataBytes = this.readBytesByLong();
         }
 
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }
 
     @Override
     protected void process() throws IOException {
-        File file = Paths.get(Server.STORAGE_PATH, this.login, this.fileName).toFile();
+        File file = Paths.get(Server.STORAGE_PATH, this.auth.getLogin(), this.fileName).toFile();
 
         if (this.fileCurrentPart == 0 && file.exists()) {
             file.delete();
@@ -122,7 +122,7 @@ public class UploadFileAction extends AbstractAction {
         LOGGER.log(Level.INFO, "{0} -> Success received file part, {1} of file: {2}", new Object[]{ this.ctx.channel().id(), this.fileCurrentPart, this.fileName });
 
         { // write head
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
+            this.writeAction(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
         }
 
         { // write file name
@@ -130,17 +130,17 @@ public class UploadFileAction extends AbstractAction {
         }
 
         { // write file parts count
-            this.ctx.write(this.filePartsCount);
+            this.outByteBuf.writeLong(this.filePartsCount);
         }
 
         { // write file current part
-            this.ctx.write(this.fileCurrentPart);
+            this.outByteBuf.writeInt(this.fileCurrentPart);
         }
 
         { // write end
             this.writeEndBytes();
         }
 
-        this.ctx.flush();
+        this.ctx.writeAndFlush(this.outByteBuf);
     }
 }

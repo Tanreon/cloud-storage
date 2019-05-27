@@ -179,13 +179,13 @@ public class MainController implements Initializable {
                 final ContextMenu contextMenu = new ContextMenu();
 
                 MenuItem downloadMenuItem = new MenuItem("Upload");
-                downloadMenuItem.setOnAction(event -> this.onClientTableRowUploadAction(tableRow));
+                downloadMenuItem.setOnAction(event -> new Thread(() -> this.onClientTableRowUploadAction(tableRow)).start());
 
                 MenuItem renameMenuItem = new MenuItem("Rename");
-                renameMenuItem.setOnAction(event -> this.onClientTableRowRenameAction(tableRow));
+                renameMenuItem.setOnAction(event -> new Thread(() -> this.onClientTableRowRenameAction(tableRow)).start());
 
                 MenuItem deleteMenuItem = new MenuItem("Delete");
-                deleteMenuItem.setOnAction(event -> this.onClientTableRowDeleteAction(tableRow));
+                deleteMenuItem.setOnAction(event -> new Thread(() -> this.onClientTableRowDeleteAction(tableRow)).start());
 
                 contextMenu.getItems().addAll(downloadMenuItem, renameMenuItem, deleteMenuItem);
 
@@ -202,13 +202,13 @@ public class MainController implements Initializable {
                 final ContextMenu contextMenu = new ContextMenu();
 
                 MenuItem downloadMenuItem = new MenuItem("Download");
-                downloadMenuItem.setOnAction(event -> this.onServerTableRowDownloadAction(tableRow));
+                downloadMenuItem.setOnAction(event -> new Thread(() -> this.onServerTableRowDownloadAction(tableRow)).start());
 
                 MenuItem renameMenuItem = new MenuItem("Rename");
-                renameMenuItem.setOnAction(event -> this.onServerTableRowRenameAction(tableRow));
+                renameMenuItem.setOnAction(event -> new Thread(() -> this.onServerTableRowRenameAction(tableRow)).start());
 
                 MenuItem deleteMenuItem = new MenuItem("Delete");
-                deleteMenuItem.setOnAction(event -> this.onServerTableRowDeleteAction(tableRow));
+                deleteMenuItem.setOnAction(event -> new Thread(() -> this.onServerTableRowDeleteAction(tableRow)).start());
 
                 contextMenu.getItems().addAll(downloadMenuItem, renameMenuItem, deleteMenuItem);
 
@@ -248,14 +248,11 @@ public class MainController implements Initializable {
             return;
         }
 
-        new Thread(() -> new UploadFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName())).start();
+        new UploadFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName());
     }
 
     private void onClientTableRowRenameAction(TableRow<ClientFileRow> tableRow) {
         LOGGER.log(Level.INFO, "RENAME_CLIENT File command {0}", tableRow.getItem().getName());
-        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
-            return;
-        }
 
         {
             String oldFileName = tableRow.getItem().getName();
@@ -277,9 +274,6 @@ public class MainController implements Initializable {
 
     private void onClientTableRowDeleteAction(TableRow<ClientFileRow> tableRow) {
         LOGGER.log(Level.INFO, "DELETE_CLIENT File command {0}", tableRow.getItem().getName());
-        if (! Client.getNetworkChannel().isOpen() || ! Client.getAuth().isSignedIn()) { // TODO переделать определение состояния сокета
-            return;
-        }
 
         {
             String fileName = tableRow.getItem().getName();
@@ -304,7 +298,7 @@ public class MainController implements Initializable {
             return;
         }
 
-        new Thread(() -> new DownloadFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName())).start();
+        new DownloadFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName());
     }
 
     private void onServerTableRowRenameAction(TableRow<ServerFileRow> tableRow) {
@@ -313,7 +307,7 @@ public class MainController implements Initializable {
             return;
         }
 
-        new Thread(() -> new CommandRenameFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName(), "new-file-name")).start(); // TODO 2 arg
+        new CommandRenameFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName(), "new-file-name"); // TODO 2 arg
     }
 
     private void onServerTableRowDeleteAction(TableRow<ServerFileRow> tableRow) {
@@ -322,7 +316,7 @@ public class MainController implements Initializable {
             return;
         }
 
-        new Thread(() -> new CommandDeleteFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName())).start();
+        new CommandDeleteFileRequest(Client.getNetworkChannel(), tableRow.getItem().getName());
     }
 
     private boolean canUpdate(Instant lastUpdate, int interval) {
@@ -358,6 +352,11 @@ public class MainController implements Initializable {
 
         public int getAvailability() {
             return availability;
+        }
+
+        public void setSize(long size) {
+            this.size = size;
+            this.notifySizeProperty();
         }
 
         public void setAvailability(int availability) {
@@ -472,11 +471,6 @@ public class MainController implements Initializable {
         public void setName(String name) {
             this.name = name;
             this.notifyNameProperty();
-        }
-
-        public void setSize(long size) {
-            this.size = size;
-            this.notifySizeProperty();
         }
 
         public void setModifiedAt(long modifiedAtMillis) {

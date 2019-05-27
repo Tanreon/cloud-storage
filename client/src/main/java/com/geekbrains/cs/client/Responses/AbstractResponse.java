@@ -8,14 +8,14 @@ public abstract class AbstractResponse extends BaseAbstractResponse {
 
     protected void readMeta() {
         { // read status
-            this.status = this.byteBuf.readShort();
+            this.status = this.inByteBuf.readShort();
         }
 
         { // read message
-            int messageLength = this.byteBuf.readInt();
+            int messageLength = this.inByteBuf.readInt();
 
             if (messageLength != 0) {
-                this.message = this.readStringByLength(messageLength);
+                this.message = this.readString(messageLength);
             }
         }
     }

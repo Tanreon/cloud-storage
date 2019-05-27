@@ -17,7 +17,7 @@ public class AccountSignInResponse extends AbstractResponse {
 
     public AccountSignInResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
 
         try {
             // Run protocol response processing
@@ -41,7 +41,7 @@ public class AccountSignInResponse extends AbstractResponse {
      * */
     @Override
     protected void receiveDataByProtocol() throws EmptyResponseException, IncorrectEndException {
-        if (this.byteBuf.isReadable()) {
+        if (this.inByteBuf.isReadable()) {
             this.readMeta();
         } else {
             throw new EmptyResponseException();
@@ -51,7 +51,7 @@ public class AccountSignInResponse extends AbstractResponse {
             this.key = this.readStringByShort();
         }
 
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }

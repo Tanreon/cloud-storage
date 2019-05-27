@@ -6,9 +6,9 @@ import java.util.Date;
 import java.util.logging.*;
 
 public class Common {
-    public static final byte[] END_BYTES = { 0, -8, 0, 1, 0, -8 };
-    public static final int MAX_BUFFER_LENGTH = 64 * 1024;
-    public static final int BUFFER_LENGTH = 62 * 1024;
+    public static final byte[] END_BYTES = { 0, 0, -1, -1, 0, 0, -1, -1, 0, 0, -1, -1, 0, 0, -1, -1, 0 };
+    public static final int MAX_BUFFER_LENGTH = 512 * 1024;
+    public static final int BUFFER_LENGTH = MAX_BUFFER_LENGTH - 1024;
     public static final String DATE_FORMAT = "dd.MM.yyyy HH:mm:ss";
 
     public static void initLogger(Logger logger, Level level) {

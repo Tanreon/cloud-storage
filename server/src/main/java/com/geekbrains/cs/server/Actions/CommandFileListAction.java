@@ -6,6 +6,7 @@ import com.geekbrains.cs.common.Contracts.OptionType;
 import com.geekbrains.cs.common.OptionTypes.CommandOptionType;
 import com.geekbrains.cs.server.ActionResponse;
 import com.geekbrains.cs.server.Contracts.ProcessFailureException;
+import com.geekbrains.cs.server.Auth;
 import com.geekbrains.cs.server.Server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -28,15 +29,14 @@ public class CommandFileListAction extends AbstractAction {
     private final ActionType ACTION_TYPE = ActionType.COMMAND;
     private final OptionType OPTION_TYPE = CommandOptionType.FILE_LIST;
 
-    ////////////////////
-    private String login = "test";
-    ////////////////////
+    private Auth auth;
 
     private List<Path> fileList;
 
-    public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+    public CommandFileListAction(ChannelHandlerContext ctx, ByteBuf byteBuf, Auth auth) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
+        this.auth = auth;
 
         try {
             // Run protocol request processing
@@ -46,14 +46,14 @@ public class CommandFileListAction extends AbstractAction {
             // Run protocol answer processing
             this.sendDataByProtocol();
         } catch (IndexOutOfBoundsException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            LOGGER.log(Level.INFO, "{0} -> IndexOutOfBoundsException", this.ctx.channel().id());
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (IncorrectEndException ex) {
-            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", ctx.channel().id());
-            ctx.writeAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
+            LOGGER.log(Level.INFO, "{0} -> IncorrectEndException", this.ctx.channel().id());
+            this.writeActionAndFlush(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 400, "BAD_REQUEST"));
         } catch (ProcessFailureException ex) {
-            LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { ctx.channel().id(), ex.getMessage() });
-            ctx.writeAndFlush(ex.getResponse());
+            LOGGER.log(Level.WARNING, "{0} -> ProcessFailureException: {1}", new Object[] { this.ctx.channel().id(), ex.getMessage() });
+            this.writeActionAndFlush((ActionResponse) ex.getResponse());
         }
     }
 
@@ -65,14 +65,14 @@ public class CommandFileListAction extends AbstractAction {
      * */
     @Override
     protected void receiveDataByProtocol() throws IncorrectEndException {
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }
 
     @Override
     protected void process() throws ProcessFailureException {
-        Path storage = Paths.get(Server.STORAGE_PATH, this.login);
+        Path storage = Paths.get(Server.STORAGE_PATH, this.auth.getLogin());
 
         try {
             this.fileList = Files.list(storage).collect(Collectors.toList());
@@ -86,39 +86,41 @@ public class CommandFileListAction extends AbstractAction {
      * */
     @Override
     protected void sendDataByProtocol() {
-        LOGGER.log(Level.INFO, "{0} -> File list command success: {1}", new Object[]{this.ctx.channel().id(), this.login});
+        LOGGER.log(Level.INFO, "{0} -> File list command success", this.ctx.channel().id());
 
         if (this.fileList.size() == 0) {
             { // write head
-                ctx.write(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
+                this.writeAction(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
             }
 
             { // write files count
-                ctx.write(0);
+                this.outByteBuf.writeInt(0);
             }
 
             { // write end
                 this.writeEndBytes();
             }
 
-            this.ctx.flush();
+            this.ctx.writeAndFlush(this.outByteBuf);
         } else {
             for (int i = 0; i < this.fileList.size(); i++) {
                 Path path = this.fileList.get(i);
                 File file = path.toFile();
 
-                LOGGER.log(Level.INFO, "{0} --> Sending file list part, file: {1}", new Object[]{ this.ctx.channel().id(), file.getName() });
+                LOGGER.log(Level.INFO, "{0} --> Sending file list part, file: {1}", new Object[]{this.ctx.channel().id(), file.getName()});
+
+                this.outByteBuf.retain();
 
                 { // write head
-                    ctx.write(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
+                    this.writeAction(new ActionResponse(ACTION_TYPE, OPTION_TYPE, 200, "OK", false));
                 }
 
                 { // write files count
-                    ctx.write(this.fileList.size());
+                    this.outByteBuf.writeInt(this.fileList.size());
                 }
 
                 { // write current file index
-                    ctx.write(i);
+                    this.outByteBuf.writeInt(i);
                 }
 
                 { // write file name
@@ -126,7 +128,7 @@ public class CommandFileListAction extends AbstractAction {
                 }
 
                 { // write file size
-                    this.ctx.write(file.length());
+                    this.outByteBuf.writeLong(file.length());
                 }
 
                 { // write created date
@@ -138,7 +140,7 @@ public class CommandFileListAction extends AbstractAction {
                         e.printStackTrace();
                     }
 
-                    ctx.write(createdAt);
+                    this.outByteBuf.writeLong(createdAt);
                 }
 
                 { // write modified date
@@ -150,14 +152,16 @@ public class CommandFileListAction extends AbstractAction {
                         e.printStackTrace();
                     }
 
-                    ctx.write(modifiedAt);
+                    this.outByteBuf.writeLong(modifiedAt);
                 }
 
                 { // write end
                     this.writeEndBytes();
                 }
 
-                this.ctx.flush();
+                this.ctx.writeAndFlush(this.outByteBuf).syncUninterruptibly();
+
+                this.outByteBuf.clear();
             }
         }
     }

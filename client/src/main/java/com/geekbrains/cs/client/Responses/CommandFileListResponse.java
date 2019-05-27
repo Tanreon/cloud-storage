@@ -23,7 +23,7 @@ public class CommandFileListResponse extends AbstractResponse {
 
     public CommandFileListResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
 
         try {
             // Run protocol response processing
@@ -47,19 +47,19 @@ public class CommandFileListResponse extends AbstractResponse {
      * */
     @Override
     protected void receiveDataByProtocol() throws EmptyResponseException, IncorrectEndException {
-        if (this.byteBuf.isReadable()) {
+        if (this.inByteBuf.isReadable()) {
             this.readMeta();
         } else {
             throw new EmptyResponseException();
         }
 
         { // read files count
-            this.filesCount = this.byteBuf.readInt();
+            this.filesCount = this.inByteBuf.readInt();
         }
 
         if (this.filesCount > 0) {
             { // read current file index
-                this.currentFileIndex = this.byteBuf.readInt();
+                this.currentFileIndex = this.inByteBuf.readInt();
             }
 
             { // read name
@@ -67,19 +67,19 @@ public class CommandFileListResponse extends AbstractResponse {
             }
 
             { // read size
-                this.fileSize = this.byteBuf.readLong();
+                this.fileSize = this.inByteBuf.readLong();
             }
 
             { // read created date
-                this.fileCreatedAt = this.byteBuf.readLong();
+                this.fileCreatedAt = this.inByteBuf.readLong();
             }
 
             { // read modified date
-                this.fileModifiedAt = this.byteBuf.readLong();
+                this.fileModifiedAt = this.inByteBuf.readLong();
             }
         }
 
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }

@@ -1,9 +1,11 @@
 package com.geekbrains.cs.client.Requests;
 
 import com.geekbrains.cs.client.Client;
+import com.geekbrains.cs.client.Header;
 import com.geekbrains.cs.client.Request;
 import com.geekbrains.cs.common.ActionType;
 import com.geekbrains.cs.common.Contracts.OptionType;
+import com.geekbrains.cs.common.HeaderType;
 import com.geekbrains.cs.common.OptionTypes.CommandOptionType;
 import io.netty.channel.Channel;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -39,11 +41,11 @@ public class CommandRenameFileRequest extends AbstractRequest {
     @Override
     protected void sendDataByProtocol() {
         { // write meta
-            this.channel.write(new Request(ACTION_TYPE, OPTION_TYPE, false));
+            this.writeRequest(new Request(ACTION_TYPE, OPTION_TYPE, false));
         }
 
         { // write head
-
+            this.writeHeader(new Header(HeaderType.AUTH, Client.getAuth().getKey()));
         }
 
         { // write current file name
@@ -58,6 +60,6 @@ public class CommandRenameFileRequest extends AbstractRequest {
             this.writeEndBytes();
         }
 
-        this.channel.flush();
+        this.channel.writeAndFlush(this.outByteBuf);
     }
 }

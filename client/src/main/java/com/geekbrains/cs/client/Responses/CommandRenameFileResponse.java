@@ -16,7 +16,7 @@ public class CommandRenameFileResponse extends AbstractResponse {
 
     public CommandRenameFileResponse(ChannelHandlerContext ctx, ByteBuf byteBuf) {
         this.ctx = ctx;
-        this.byteBuf = byteBuf;
+        this.inByteBuf = byteBuf;
 
         try {
             // Run protocol response processing
@@ -40,13 +40,13 @@ public class CommandRenameFileResponse extends AbstractResponse {
      * */
     @Override
     protected void receiveDataByProtocol() throws EmptyResponseException, IncorrectEndException {
-        if (this.byteBuf.isReadable()) {
+        if (this.inByteBuf.isReadable()) {
             this.readMeta();
         } else {
             throw new EmptyResponseException();
         }
 
-        if (this.byteBuf.isReadable()) { // check end
+        if (this.inByteBuf.isReadable()) { // check end
             throw new IncorrectEndException();
         }
     }
